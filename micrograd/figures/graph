@@ -1,0 +1,12 @@
+digraph {
+	graph [rankdir=LR]
+	"140478035687056-operation" [label="+" shape=circle]
+	"140478035687056-operation" -> 140478035687056
+	140478034286048 [label="{ Value: 3.0000 | Label: a | Gradient: 2.0000 }" shape=record]
+	140478034286048 -> "140478035687056-operation"
+	"140478035687056-operation" [label="+" shape=circle]
+	"140478035687056-operation" -> 140478035687056
+	140478034286048 [label="{ Value: 3.0000 | Label: a | Gradient: 2.0000 }" shape=record]
+	140478034286048 -> "140478035687056-operation"
+	140478035687056 [label="{ Value: 6.0000 | Label: b | Gradient: 1.0000 }" shape=record]
+}
