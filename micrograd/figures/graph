@@ -1,12 +1,499 @@
 digraph {
 	graph [rankdir=LR]
-	"140478035687056-operation" [label="+" shape=circle]
-	"140478035687056-operation" -> 140478035687056
-	140478034286048 [label="{ Value: 3.0000 | Label: a | Gradient: 2.0000 }" shape=record]
-	140478034286048 -> "140478035687056-operation"
-	"140478035687056-operation" [label="+" shape=circle]
-	"140478035687056-operation" -> 140478035687056
-	140478034286048 [label="{ Value: 3.0000 | Label: a | Gradient: 2.0000 }" shape=record]
-	140478034286048 -> "140478035687056-operation"
-	140478035687056 [label="{ Value: 6.0000 | Label: b | Gradient: 1.0000 }" shape=record]
+	"140718875038544-operation" [label="*" shape=circle]
+	"140718875038544-operation" -> 140718875038544
+	140718874888656 [label="{ Value: -0.4947 | Label: None | Gradient: -0.4750 }" shape=record]
+	140718874888656 -> "140718875038544-operation"
+	"140718874967248-operation" [label="*" shape=circle]
+	"140718874967248-operation" -> 140718874967248
+	140718874722128 [label="{ Value: -0.3024 | Label: None | Gradient: -0.3098 }" shape=record]
+	140718874722128 -> "140718874967248-operation"
+	"140718874893008-operation" [label="*" shape=circle]
+	"140718874893008-operation" -> 140718874893008
+	140718874690384 [label="{ Value: -0.8627 | Label: None | Gradient: -0.4906 }" shape=record]
+	140718874690384 -> "140718874893008-operation"
+	"140718874893008-operation" [label="*" shape=circle]
+	140718875917040 [label="{ Value: 1.0000 | Label: None | Gradient: 0.4136 }" shape=record]
+	140718875917040 -> "140718874893008-operation"
+	140718874893008 [label="{ Value: -0.8382 | Label: None | Gradient: 0.0084 }" shape=record]
+	"140718874893136-operation" [label="+" shape=circle]
+	"140718874893136-operation" -> 140718874893136
+	140718874893008 -> "140718874893136-operation"
+	"140718874893136-operation" [label="+" shape=circle]
+	140718874892752 [label="{ Value: 0.0000 | Label: None | Gradient: 0.0084 }" shape=record]
+	140718874892752 -> "140718874893136-operation"
+	140718874893136 [label="{ Value: -0.8382 | Label: None | Gradient: 0.0084 }" shape=record]
+	"140718874892496-operation" [label="+" shape=circle]
+	"140718874892496-operation" -> 140718874892496
+	140718874893136 -> "140718874892496-operation"
+	"140718874893264-operation" [label="*" shape=circle]
+	"140718874893264-operation" -> 140718874893264
+	140718874690768 [label="{ Value: -0.7469 | Label: None | Gradient: -0.6641 }" shape=record]
+	140718874690768 -> "140718874893264-operation"
+	"140718874893264-operation" [label="*" shape=circle]
+	140718874497712 [label="{ Value: 1.0000 | Label: None | Gradient: -0.8364 }" shape=record]
+	140718874497712 -> "140718874893264-operation"
+	140718874893264 [label="{ Value: -0.7137 | Label: None | Gradient: 0.0084 }" shape=record]
+	"140718874892496-operation" [label="+" shape=circle]
+	140718874893264 -> "140718874892496-operation"
+	140718874892496 [label="{ Value: -1.5519 | Label: None | Gradient: 0.0084 }" shape=record]
+	"140718874892368-operation" [label="+" shape=circle]
+	"140718874892368-operation" -> 140718874892368
+	140718874892496 -> "140718874892368-operation"
+	"140718874892880-operation" [label="*" shape=circle]
+	"140718874892880-operation" -> 140718874892880
+	140718874237376 [label="{ Value: 0.9021 | Label: None | Gradient: -0.7508 }" shape=record]
+	140718874237376 -> "140718874892880-operation"
+	"140718874892880-operation" [label="*" shape=circle]
+	140718874164544 [label="{ Value: -1.0000 | Label: None | Gradient: -0.4827 }" shape=record]
+	140718874164544 -> "140718874892880-operation"
+	140718874892880 [label="{ Value: -0.9397 | Label: None | Gradient: 0.0084 }" shape=record]
+	"140718874892368-operation" [label="+" shape=circle]
+	140718874892880 -> "140718874892368-operation"
+	140718874892368 [label="{ Value: -2.4916 | Label: None | Gradient: 0.0084 }" shape=record]
+	"140718874892240-operation" [label="+" shape=circle]
+	"140718874892240-operation" -> 140718874892240
+	140718874892368 -> "140718874892240-operation"
+	"140718874892240-operation" [label="+" shape=circle]
+	140718874238432 [label="{ Value: 0.1345 | Label: None | Gradient: -0.7572 }" shape=record]
+	140718874238432 -> "140718874892240-operation"
+	140718874892240 [label="{ Value: -2.3192 | Label: None | Gradient: 0.0084 }" shape=record]
+	"140718874891856-operation" [label=tanh shape=circle]
+	"140718874891856-operation" -> 140718874891856
+	140718874892240 -> "140718874891856-operation"
+	140718874891856 [label="{ Value: -0.9808 | Label: None | Gradient: 0.2221 }" shape=record]
+	"140718874967248-operation" [label="*" shape=circle]
+	140718874891856 -> "140718874967248-operation"
+	140718874967248 [label="{ Value: 0.2814 | Label: None | Gradient: 0.2477 }" shape=record]
+	"140718874967888-operation" [label="+" shape=circle]
+	"140718874967888-operation" -> 140718874967888
+	140718874967248 -> "140718874967888-operation"
+	"140718874967888-operation" [label="+" shape=circle]
+	140718874967760 [label="{ Value: 0.0000 | Label: None | Gradient: 0.2477 }" shape=record]
+	140718874967760 -> "140718874967888-operation"
+	140718874967888 [label="{ Value: 0.2814 | Label: None | Gradient: 0.2477 }" shape=record]
+	"140718875033680-operation" [label="+" shape=circle]
+	"140718875033680-operation" -> 140718875033680
+	140718874967888 -> "140718875033680-operation"
+	"140718874967376-operation" [label="*" shape=circle]
+	"140718874967376-operation" -> 140718874967376
+	140718874886224 [label="{ Value: -0.8561 | Label: None | Gradient: -0.5486 }" shape=record]
+	140718874886224 -> "140718874967376-operation"
+	"140718874892112-operation" [label="*" shape=circle]
+	"140718874892112-operation" -> 140718874892112
+	140718874878480 [label="{ Value: -0.5094 | Label: None | Gradient: -0.5581 }" shape=record]
+	140718874878480 -> "140718874892112-operation"
+	140718874892112 [label="{ Value: -0.4815 | Label: None | Gradient: -0.8589 }" shape=record]
+	"140718874891344-operation" [label="+" shape=circle]
+	"140718874891344-operation" -> 140718874891344
+	140718874892112 -> "140718874891344-operation"
+	"140718874891344-operation" [label="+" shape=circle]
+	140718874891984 [label="{ Value: 0.0000 | Label: None | Gradient: -0.8589 }" shape=record]
+	140718874891984 -> "140718874891344-operation"
+	140718874891344 [label="{ Value: -0.4815 | Label: None | Gradient: -0.8589 }" shape=record]
+	"140718874891216-operation" [label="+" shape=circle]
+	"140718874891216-operation" -> 140718874891216
+	140718874891344 -> "140718874891216-operation"
+	"140718874891728-operation" [label="*" shape=circle]
+	"140718874891728-operation" -> 140718874891728
+	140718874878800 [label="{ Value: 0.9785 | Label: None | Gradient: -0.3048 }" shape=record]
+	140718874878800 -> "140718874891728-operation"
+	140718874891728 [label="{ Value: 0.9938 | Label: None | Gradient: -0.8589 }" shape=record]
+	"140718874891216-operation" [label="+" shape=circle]
+	140718874891728 -> "140718874891216-operation"
+	140718874891216 [label="{ Value: 0.5122 | Label: None | Gradient: -0.8589 }" shape=record]
+	"140718874891088-operation" [label="+" shape=circle]
+	"140718874891088-operation" -> 140718874891088
+	140718874891216 -> "140718874891088-operation"
+	"140718874891600-operation" [label="*" shape=circle]
+	"140718874891600-operation" -> 140718874891600
+	140718874481808 [label="{ Value: 0.7126 | Label: None | Gradient: 1.4729 }" shape=record]
+	140718874481808 -> "140718874891600-operation"
+	140718874891600 [label="{ Value: -0.6389 | Label: None | Gradient: -0.8589 }" shape=record]
+	"140718874891088-operation" [label="+" shape=circle]
+	140718874891600 -> "140718874891088-operation"
+	140718874891088 [label="{ Value: -0.1267 | Label: None | Gradient: -0.8589 }" shape=record]
+	"140718874890704-operation" [label="+" shape=circle]
+	"140718874890704-operation" -> 140718874890704
+	140718874891088 -> "140718874890704-operation"
+	"140718874890704-operation" [label="+" shape=circle]
+	140718877667280 [label="{ Value: -0.0963 | Label: None | Gradient: -0.2643 }" shape=record]
+	140718877667280 -> "140718874890704-operation"
+	140718874890704 [label="{ Value: -0.2098 | Label: None | Gradient: -0.8589 }" shape=record]
+	"140718874890960-operation" [label=tanh shape=circle]
+	"140718874890960-operation" -> 140718874890960
+	140718874890704 -> "140718874890960-operation"
+	140718874890960 [label="{ Value: -0.2068 | Label: None | Gradient: -0.8973 }" shape=record]
+	"140718874967376-operation" [label="*" shape=circle]
+	140718874890960 -> "140718874967376-operation"
+	140718874967376 [label="{ Value: 0.1714 | Label: None | Gradient: 0.2477 }" shape=record]
+	"140718875033680-operation" [label="+" shape=circle]
+	140718874967376 -> "140718875033680-operation"
+	140718875033680 [label="{ Value: 0.4528 | Label: None | Gradient: 0.2477 }" shape=record]
+	"140718875033808-operation" [label="+" shape=circle]
+	"140718875033808-operation" -> 140718875033808
+	140718875033680 -> "140718875033808-operation"
+	"140718874967504-operation" [label="*" shape=circle]
+	"140718874967504-operation" -> 140718874967504
+	140718874886352 [label="{ Value: 0.9547 | Label: None | Gradient: -0.0246 }" shape=record]
+	140718874886352 -> "140718874967504-operation"
+	"140718874890576-operation" [label="*" shape=circle]
+	"140718874890576-operation" -> 140718874890576
+	140718874720848 [label="{ Value: -0.0022 | Label: None | Gradient: -0.4369 }" shape=record]
+	140718874720848 -> "140718874890576-operation"
+	140718874890576 [label="{ Value: 0.0196 | Label: None | Gradient: 0.2045 }" shape=record]
+	"140718874890064-operation" [label="+" shape=circle]
+	"140718874890064-operation" -> 140718874890064
+	140718874890576 -> "140718874890064-operation"
+	"140718874890064-operation" [label="+" shape=circle]
+	140718874890192 [label="{ Value: 0.0000 | Label: None | Gradient: 0.2045 }" shape=record]
+	140718874890192 -> "140718874890064-operation"
+	140718874890064 [label="{ Value: 0.0196 | Label: None | Gradient: 0.2045 }" shape=record]
+	"140718874889936-operation" [label="+" shape=circle]
+	"140718874889936-operation" -> 140718874889936
+	140718874890064 -> "140718874889936-operation"
+	"140718874890448-operation" [label="*" shape=circle]
+	"140718874890448-operation" -> 140718874890448
+	140718874721232 [label="{ Value: 0.0476 | Label: None | Gradient: -0.8117 }" shape=record]
+	140718874721232 -> "140718874890448-operation"
+	140718874890448 [label="{ Value: 0.0882 | Label: None | Gradient: 0.2045 }" shape=record]
+	"140718874889936-operation" [label="+" shape=circle]
+	140718874890448 -> "140718874889936-operation"
+	140718874889936 [label="{ Value: 0.1078 | Label: None | Gradient: 0.2045 }" shape=record]
+	"140718874889552-operation" [label="+" shape=circle]
+	"140718874889552-operation" -> 140718874889552
+	140718874889936 -> "140718874889552-operation"
+	"140718874890832-operation" [label="*" shape=circle]
+	"140718874890832-operation" -> 140718874890832
+	140718874721360 [label="{ Value: 0.2157 | Label: None | Gradient: -1.3735 }" shape=record]
+	140718874721360 -> "140718874890832-operation"
+	140718874890832 [label="{ Value: -0.2844 | Label: None | Gradient: 0.2045 }" shape=record]
+	"140718874889552-operation" [label="+" shape=circle]
+	140718874890832 -> "140718874889552-operation"
+	140718874889552 [label="{ Value: -0.1766 | Label: None | Gradient: 0.2045 }" shape=record]
+	"140718874889808-operation" [label="+" shape=circle]
+	"140718874889808-operation" -> 140718874889808
+	140718874889552 -> "140718874889808-operation"
+	"140718874889808-operation" [label="+" shape=circle]
+	140718874721488 [label="{ Value: -0.8764 | Label: None | Gradient: -0.9398 }" shape=record]
+	140718874721488 -> "140718874889808-operation"
+	140718874889808 [label="{ Value: -1.0061 | Label: None | Gradient: 0.2045 }" shape=record]
+	"140718874889424-operation" [label=tanh shape=circle]
+	"140718874889424-operation" -> 140718874889424
+	140718874889808 -> "140718874889424-operation"
+	140718874889424 [label="{ Value: -0.7641 | Label: None | Gradient: 0.4916 }" shape=record]
+	"140718874967504-operation" [label="*" shape=circle]
+	140718874889424 -> "140718874967504-operation"
+	140718874967504 [label="{ Value: -0.7305 | Label: None | Gradient: 0.2477 }" shape=record]
+	"140718875033808-operation" [label="+" shape=circle]
+	140718874967504 -> "140718875033808-operation"
+	140718875033808 [label="{ Value: -0.2777 | Label: None | Gradient: 0.2477 }" shape=record]
+	"140718875033936-operation" [label="+" shape=circle]
+	"140718875033936-operation" -> 140718875033936
+	140718875033808 -> "140718875033936-operation"
+	"140718874967632-operation" [label="*" shape=circle]
+	"140718874967632-operation" -> 140718874967632
+	140718874886480 [label="{ Value: 0.1356 | Label: None | Gradient: 0.2672 }" shape=record]
+	140718874886480 -> "140718874967632-operation"
+	"140718874889296-operation" [label="*" shape=circle]
+	"140718874889296-operation" -> 140718874889296
+	140718874721616 [label="{ Value: -0.3281 | Label: None | Gradient: -0.0274 }" shape=record]
+	140718874721616 -> "140718874889296-operation"
+	140718874889296 [label="{ Value: -0.3268 | Label: None | Gradient: -0.0094 }" shape=record]
+	"140718874966608-operation" [label="+" shape=circle]
+	"140718874966608-operation" -> 140718874966608
+	140718874889296 -> "140718874966608-operation"
+	"140718874966608-operation" [label="+" shape=circle]
+	140718874966480 [label="{ Value: 0.0000 | Label: None | Gradient: -0.0094 }" shape=record]
+	140718874966480 -> "140718874966608-operation"
+	140718874966608 [label="{ Value: -0.3268 | Label: None | Gradient: -0.0094 }" shape=record]
+	"140718874966736-operation" [label="+" shape=circle]
+	"140718874966736-operation" -> 140718874966736
+	140718874966608 -> "140718874966736-operation"
+	"140718874889680-operation" [label="*" shape=circle]
+	"140718874889680-operation" -> 140718874889680
+	140718874721744 [label="{ Value: -0.5469 | Label: None | Gradient: -0.0195 }" shape=record]
+	140718874721744 -> "140718874889680-operation"
+	140718874889680 [label="{ Value: -0.5459 | Label: None | Gradient: -0.0094 }" shape=record]
+	"140718874966736-operation" [label="+" shape=circle]
+	140718874889680 -> "140718874966736-operation"
+	140718874966736 [label="{ Value: -0.8727 | Label: None | Gradient: -0.0094 }" shape=record]
+	"140718874966864-operation" [label="+" shape=circle]
+	"140718874966864-operation" -> 140718874966864
+	140718874966736 -> "140718874966864-operation"
+	"140718874966352-operation" [label="*" shape=circle]
+	"140718874966352-operation" -> 140718874966352
+	140718874721872 [label="{ Value: 0.0039 | Label: None | Gradient: -0.0058 }" shape=record]
+	140718874721872 -> "140718874966352-operation"
+	140718874966352 [label="{ Value: -0.0042 | Label: None | Gradient: -0.0094 }" shape=record]
+	"140718874966864-operation" [label="+" shape=circle]
+	140718874966352 -> "140718874966864-operation"
+	140718874966864 [label="{ Value: -0.8768 | Label: None | Gradient: -0.0094 }" shape=record]
+	"140718874966992-operation" [label="+" shape=circle]
+	"140718874966992-operation" -> 140718874966992
+	140718874966864 -> "140718874966992-operation"
+	"140718874966992-operation" [label="+" shape=circle]
+	140718874722000 [label="{ Value: -0.2641 | Label: None | Gradient: -0.0267 }" shape=record]
+	140718874722000 -> "140718874966992-operation"
+	140718874966992 [label="{ Value: -1.1396 | Label: None | Gradient: -0.0094 }" shape=record]
+	"140718874967120-operation" [label=tanh shape=circle]
+	"140718874967120-operation" -> 140718874967120
+	140718874966992 -> "140718874967120-operation"
+	140718874967120 [label="{ Value: -0.8143 | Label: None | Gradient: -0.0279 }" shape=record]
+	"140718874967632-operation" [label="*" shape=circle]
+	140718874967120 -> "140718874967632-operation"
+	140718874967632 [label="{ Value: -0.0995 | Label: None | Gradient: 0.2477 }" shape=record]
+	"140718875033936-operation" [label="+" shape=circle]
+	140718874967632 -> "140718875033936-operation"
+	140718875033936 [label="{ Value: -0.3772 | Label: None | Gradient: 0.2477 }" shape=record]
+	"140718875034064-operation" [label="+" shape=circle]
+	"140718875034064-operation" -> 140718875034064
+	140718875033936 -> "140718875034064-operation"
+	"140718875034064-operation" [label="+" shape=circle]
+	140718874886608 [label="{ Value: 0.6803 | Label: None | Gradient: -0.3906 }" shape=record]
+	140718874886608 -> "140718875034064-operation"
+	140718875034064 [label="{ Value: 0.3227 | Label: None | Gradient: 0.2477 }" shape=record]
+	"140718875034192-operation" [label=tanh shape=circle]
+	"140718875034192-operation" -> 140718875034192
+	140718875034064 -> "140718875034192-operation"
+	140718875034192 [label="{ Value: 0.3119 | Label: None | Gradient: 0.2744 }" shape=record]
+	"140718875038544-operation" [label="*" shape=circle]
+	140718875034192 -> "140718875038544-operation"
+	140718875038544 [label="{ Value: -0.1469 | Label: None | Gradient: -0.5828 }" shape=record]
+	"140718875039184-operation" [label="+" shape=circle]
+	"140718875039184-operation" -> 140718875039184
+	140718875038544 -> "140718875039184-operation"
+	"140718875039184-operation" [label="+" shape=circle]
+	140718875039056 [label="{ Value: 0.0000 | Label: None | Gradient: -0.5828 }" shape=record]
+	140718875039056 -> "140718875039184-operation"
+	140718875039184 [label="{ Value: -0.1469 | Label: None | Gradient: -0.5828 }" shape=record]
+	"140718875039312-operation" [label="+" shape=circle]
+	"140718875039312-operation" -> 140718875039312
+	140718875039184 -> "140718875039312-operation"
+	"140718875038672-operation" [label="*" shape=circle]
+	"140718875038672-operation" -> 140718875038672
+	140718874888784 [label="{ Value: -0.7289 | Label: None | Gradient: -0.6351 }" shape=record]
+	140718874888784 -> "140718875038672-operation"
+	"140718875034320-operation" [label="*" shape=circle]
+	"140718875034320-operation" -> 140718875034320
+	140718874886736 [label="{ Value: -0.1093 | Label: None | Gradient: -0.4356 }" shape=record]
+	140718874886736 -> "140718875034320-operation"
+	140718875034320 [label="{ Value: 0.0859 | Label: None | Gradient: 0.4012 }" shape=record]
+	"140718875034960-operation" [label="+" shape=circle]
+	"140718875034960-operation" -> 140718875034960
+	140718875034320 -> "140718875034960-operation"
+	"140718875034960-operation" [label="+" shape=circle]
+	140718875034832 [label="{ Value: 0.0000 | Label: None | Gradient: 0.4012 }" shape=record]
+	140718875034832 -> "140718875034960-operation"
+	140718875034960 [label="{ Value: 0.0859 | Label: None | Gradient: 0.4012 }" shape=record]
+	"140718875035088-operation" [label="+" shape=circle]
+	"140718875035088-operation" -> 140718875035088
+	140718875034960 -> "140718875035088-operation"
+	"140718875034448-operation" [label="*" shape=circle]
+	"140718875034448-operation" -> 140718875034448
+	140718874886864 [label="{ Value: -0.8378 | Label: None | Gradient: -0.6040 }" shape=record]
+	140718874886864 -> "140718875034448-operation"
+	140718875034448 [label="{ Value: 0.1670 | Label: None | Gradient: 0.4012 }" shape=record]
+	"140718875035088-operation" [label="+" shape=circle]
+	140718875034448 -> "140718875035088-operation"
+	140718875035088 [label="{ Value: 0.2529 | Label: None | Gradient: 0.4012 }" shape=record]
+	"140718875035216-operation" [label="+" shape=circle]
+	"140718875035216-operation" -> 140718875035216
+	140718875035088 -> "140718875035216-operation"
+	"140718875034576-operation" [label="*" shape=circle]
+	"140718875034576-operation" -> 140718875034576
+	140718874886992 [label="{ Value: 0.7779 | Label: None | Gradient: -0.0991 }" shape=record]
+	140718874886992 -> "140718875034576-operation"
+	140718875034576 [label="{ Value: -0.5982 | Label: None | Gradient: 0.4012 }" shape=record]
+	"140718875035216-operation" [label="+" shape=circle]
+	140718875034576 -> "140718875035216-operation"
+	140718875035216 [label="{ Value: -0.3453 | Label: None | Gradient: 0.4012 }" shape=record]
+	"140718875035344-operation" [label="+" shape=circle]
+	"140718875035344-operation" -> 140718875035344
+	140718875035216 -> "140718875035344-operation"
+	"140718875034704-operation" [label="*" shape=circle]
+	"140718875034704-operation" -> 140718875034704
+	140718874887120 [label="{ Value: -0.3399 | Label: None | Gradient: 0.2277 }" shape=record]
+	140718874887120 -> "140718875034704-operation"
+	140718875034704 [label="{ Value: 0.2861 | Label: None | Gradient: 0.4012 }" shape=record]
+	"140718875035344-operation" [label="+" shape=circle]
+	140718875034704 -> "140718875035344-operation"
+	140718875035344 [label="{ Value: -0.0593 | Label: None | Gradient: 0.4012 }" shape=record]
+	"140718875035472-operation" [label="+" shape=circle]
+	"140718875035472-operation" -> 140718875035472
+	140718875035344 -> "140718875035472-operation"
+	"140718875035472-operation" [label="+" shape=circle]
+	140718874887248 [label="{ Value: -0.0712 | Label: None | Gradient: -0.3608 }" shape=record]
+	140718874887248 -> "140718875035472-operation"
+	140718875035472 [label="{ Value: -0.1125 | Label: None | Gradient: 0.4012 }" shape=record]
+	"140718875035600-operation" [label=tanh shape=circle]
+	"140718875035600-operation" -> 140718875035600
+	140718875035472 -> "140718875035600-operation"
+	140718875035600 [label="{ Value: -0.1120 | Label: None | Gradient: 0.4063 }" shape=record]
+	"140718875038672-operation" [label="*" shape=circle]
+	140718875035600 -> "140718875038672-operation"
+	140718875038672 [label="{ Value: 0.0781 | Label: None | Gradient: -0.5828 }" shape=record]
+	"140718875039312-operation" [label="+" shape=circle]
+	140718875038672 -> "140718875039312-operation"
+	140718875039312 [label="{ Value: -0.0688 | Label: None | Gradient: -0.5828 }" shape=record]
+	"140718875039440-operation" [label="+" shape=circle]
+	"140718875039440-operation" -> 140718875039440
+	140718875039312 -> "140718875039440-operation"
+	"140718875038800-operation" [label="*" shape=circle]
+	"140718875038800-operation" -> 140718875038800
+	140718874888912 [label="{ Value: 0.4245 | Label: None | Gradient: 0.9262 }" shape=record]
+	140718874888912 -> "140718875038800-operation"
+	"140718875035728-operation" [label="*" shape=circle]
+	"140718875035728-operation" -> 140718875035728
+	140718874887376 [label="{ Value: -0.4363 | Label: None | Gradient: 0.1405 }" shape=record]
+	140718874887376 -> "140718875035728-operation"
+	140718875035728 [label="{ Value: 0.4348 | Label: None | Gradient: -0.1618 }" shape=record]
+	"140718875036368-operation" [label="+" shape=circle]
+	"140718875036368-operation" -> 140718875036368
+	140718875035728 -> "140718875036368-operation"
+	"140718875036368-operation" [label="+" shape=circle]
+	140718875036240 [label="{ Value: 0.0000 | Label: None | Gradient: -0.1618 }" shape=record]
+	140718875036240 -> "140718875036368-operation"
+	140718875036368 [label="{ Value: 0.4348 | Label: None | Gradient: -0.1618 }" shape=record]
+	"140718875036496-operation" [label="+" shape=circle]
+	"140718875036496-operation" -> 140718875036496
+	140718875036368 -> "140718875036496-operation"
+	"140718875035856-operation" [label="*" shape=circle]
+	"140718875035856-operation" -> 140718875035856
+	140718874887504 [label="{ Value: 0.7625 | Label: None | Gradient: 0.1100 }" shape=record]
+	140718874887504 -> "140718875035856-operation"
+	140718875035856 [label="{ Value: -0.1565 | Label: None | Gradient: -0.1618 }" shape=record]
+	"140718875036496-operation" [label="+" shape=circle]
+	140718875035856 -> "140718875036496-operation"
+	140718875036496 [label="{ Value: 0.2783 | Label: None | Gradient: -0.1618 }" shape=record]
+	"140718875036624-operation" [label="+" shape=circle]
+	"140718875036624-operation" -> 140718875036624
+	140718875036496 -> "140718875036624-operation"
+	"140718875035984-operation" [label="*" shape=circle]
+	"140718875035984-operation" -> 140718875035984
+	140718874887632 [label="{ Value: 0.6599 | Label: None | Gradient: 0.0634 }" shape=record]
+	140718874887632 -> "140718875035984-operation"
+	140718875035984 [label="{ Value: -0.5018 | Label: None | Gradient: -0.1618 }" shape=record]
+	"140718875036624-operation" [label="+" shape=circle]
+	140718875035984 -> "140718875036624-operation"
+	140718875036624 [label="{ Value: -0.2235 | Label: None | Gradient: -0.1618 }" shape=record]
+	"140718875036752-operation" [label="+" shape=circle]
+	"140718875036752-operation" -> 140718875036752
+	140718875036624 -> "140718875036752-operation"
+	"140718875036112-operation" [label="*" shape=circle]
+	"140718875036112-operation" -> 140718875036112
+	140718874887760 [label="{ Value: -0.0047 | Label: None | Gradient: -0.0034 }" shape=record]
+	140718874887760 -> "140718875036112-operation"
+	140718875036112 [label="{ Value: 0.0037 | Label: None | Gradient: -0.1618 }" shape=record]
+	"140718875036752-operation" [label="+" shape=circle]
+	140718875036112 -> "140718875036752-operation"
+	140718875036752 [label="{ Value: -0.2198 | Label: None | Gradient: -0.1618 }" shape=record]
+	"140718875036880-operation" [label="+" shape=circle]
+	"140718875036880-operation" -> 140718875036880
+	140718875036752 -> "140718875036880-operation"
+	"140718875036880-operation" [label="+" shape=circle]
+	140718874887888 [label="{ Value: 0.7914 | Label: None | Gradient: 0.0292 }" shape=record]
+	140718874887888 -> "140718875036880-operation"
+	140718875036880 [label="{ Value: 0.5702 | Label: None | Gradient: -0.1618 }" shape=record]
+	"140718875037008-operation" [label=tanh shape=circle]
+	"140718875037008-operation" -> 140718875037008
+	140718875036880 -> "140718875037008-operation"
+	140718875037008 [label="{ Value: 0.5155 | Label: None | Gradient: -0.2204 }" shape=record]
+	"140718875038800-operation" [label="*" shape=circle]
+	140718875037008 -> "140718875038800-operation"
+	140718875038800 [label="{ Value: 0.1949 | Label: None | Gradient: -0.5828 }" shape=record]
+	"140718875039440-operation" [label="+" shape=circle]
+	140718875038800 -> "140718875039440-operation"
+	140718875039440 [label="{ Value: 0.1262 | Label: None | Gradient: -0.5828 }" shape=record]
+	"140718875039568-operation" [label="+" shape=circle]
+	"140718875039568-operation" -> 140718875039568
+	140718875039440 -> "140718875039568-operation"
+	"140718875038928-operation" [label="*" shape=circle]
+	"140718875038928-operation" -> 140718875038928
+	140718874889040 [label="{ Value: 0.9706 | Label: None | Gradient: 0.2630 }" shape=record]
+	140718874889040 -> "140718875038928-operation"
+	"140718875037136-operation" [label="*" shape=circle]
+	"140718875037136-operation" -> 140718875037136
+	140718874888016 [label="{ Value: -0.8107 | Label: None | Gradient: 0.3196 }" shape=record]
+	140718874888016 -> "140718875037136-operation"
+	140718875037136 [label="{ Value: 0.8108 | Label: None | Gradient: -0.3104 }" shape=record]
+	"140718875037776-operation" [label="+" shape=circle]
+	"140718875037776-operation" -> 140718875037776
+	140718875037136 -> "140718875037776-operation"
+	"140718875037776-operation" [label="+" shape=circle]
+	140718875037648 [label="{ Value: 0.0000 | Label: None | Gradient: -0.3104 }" shape=record]
+	140718875037648 -> "140718875037776-operation"
+	140718875037776 [label="{ Value: 0.8108 | Label: None | Gradient: -0.3104 }" shape=record]
+	"140718875037904-operation" [label="+" shape=circle]
+	"140718875037904-operation" -> 140718875037904
+	140718875037776 -> "140718875037904-operation"
+	"140718875037264-operation" [label="*" shape=circle]
+	"140718875037264-operation" -> 140718875037264
+	140718874888144 [label="{ Value: 0.8328 | Label: None | Gradient: 0.8437 }" shape=record]
+	140718874888144 -> "140718875037264-operation"
+	140718875037264 [label="{ Value: -0.1635 | Label: None | Gradient: -0.3104 }" shape=record]
+	"140718875037904-operation" [label="+" shape=circle]
+	140718875037264 -> "140718875037904-operation"
+	140718875037904 [label="{ Value: 0.6473 | Label: None | Gradient: -0.3104 }" shape=record]
+	"140718875038032-operation" [label="+" shape=circle]
+	"140718875038032-operation" -> 140718875038032
+	140718875037904 -> "140718875038032-operation"
+	"140718875037392-operation" [label="*" shape=circle]
+	"140718875037392-operation" -> 140718875037392
+	140718874888272 [label="{ Value: -0.1565 | Label: None | Gradient: -0.1080 }" shape=record]
+	140718874888272 -> "140718875037392-operation"
+	140718875037392 [label="{ Value: 0.1155 | Label: None | Gradient: -0.3104 }" shape=record]
+	"140718875038032-operation" [label="+" shape=circle]
+	140718875037392 -> "140718875038032-operation"
+	140718875038032 [label="{ Value: 0.7628 | Label: None | Gradient: -0.3104 }" shape=record]
+	"140718875038160-operation" [label="+" shape=circle]
+	"140718875038160-operation" -> 140718875038160
+	140718875038032 -> "140718875038160-operation"
+	"140718875037520-operation" [label="*" shape=circle]
+	"140718875037520-operation" -> 140718875037520
+	140718874888400 [label="{ Value: -0.2958 | Label: None | Gradient: -0.6332 }" shape=record]
+	140718874888400 -> "140718875037520-operation"
+	140718875037520 [label="{ Value: 0.2151 | Label: None | Gradient: -0.3104 }" shape=record]
+	"140718875038160-operation" [label="+" shape=circle]
+	140718875037520 -> "140718875038160-operation"
+	140718875038160 [label="{ Value: 0.9779 | Label: None | Gradient: -0.3104 }" shape=record]
+	"140718875038288-operation" [label="+" shape=circle]
+	"140718875038288-operation" -> 140718875038288
+	140718875038160 -> "140718875038288-operation"
+	"140718875038288-operation" [label="+" shape=circle]
+	140718874888528 [label="{ Value: -0.1289 | Label: None | Gradient: 0.9047 }" shape=record]
+	140718874888528 -> "140718875038288-operation"
+	140718875038288 [label="{ Value: 0.8038 | Label: None | Gradient: -0.3104 }" shape=record]
+	"140718875038416-operation" [label=tanh shape=circle]
+	"140718875038416-operation" -> 140718875038416
+	140718875038288 -> "140718875038416-operation"
+	140718875038416 [label="{ Value: 0.6661 | Label: None | Gradient: -0.5580 }" shape=record]
+	"140718875038928-operation" [label="*" shape=circle]
+	140718875038416 -> "140718875038928-operation"
+	140718875038928 [label="{ Value: 0.6378 | Label: None | Gradient: -0.5828 }" shape=record]
+	"140718875039568-operation" [label="+" shape=circle]
+	140718875038928 -> "140718875039568-operation"
+	140718875039568 [label="{ Value: 0.7640 | Label: None | Gradient: -0.5828 }" shape=record]
+	"140718875039696-operation" [label="+" shape=circle]
+	"140718875039696-operation" -> 140718875039696
+	140718875039568 -> "140718875039696-operation"
+	"140718875039696-operation" [label="+" shape=circle]
+	140718874889168 [label="{ Value: -0.0662 | Label: None | Gradient: 1.0327 }" shape=record]
+	140718874889168 -> "140718875039696-operation"
+	140718875039696 [label="{ Value: 0.6461 | Label: None | Gradient: -0.5828 }" shape=record]
+	"140718875039824-operation" [label=tanh shape=circle]
+	"140718875039824-operation" -> 140718875039824
+	140718875039696 -> "140718875039824-operation"
+	140718875039824 [label="{ Value: 0.5691 | Label: None | Gradient: -0.8619 }" shape=record]
+	"140718875040080-operation" [label="+" shape=circle]
+	"140718875040080-operation" -> 140718875040080
+	140718875039824 -> "140718875040080-operation"
+	"140718875040080-operation" [label="+" shape=circle]
+	140718875039952 [label="{ Value: -1.0000 | Label: None | Gradient: -0.8619 }" shape=record]
+	140718875039952 -> "140718875040080-operation"
+	140718875040080 [label="{ Value: -0.4309 | Label: None | Gradient: -0.8619 }" shape=record]
+	"140718875040208-operation" [label="pow(2)" shape=circle]
+	"140718875040208-operation" -> 140718875040208
+	140718875040080 -> "140718875040208-operation"
+	140718875040208 [label="{ Value: 0.1857 | Label: None | Gradient: 1.0000 }" shape=record]
 }
