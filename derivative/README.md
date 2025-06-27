@@ -96,7 +96,7 @@ $$
 E_2 = \frac{1}{2}(target - z_2^a)^2
 $$
 
-Now if we suppose we have the following inputs and weights: 
+Now if we suppose we have the following inputs and weights:  
 
 | Variable   | Value  |
 |------------|--------|
@@ -351,7 +351,7 @@ $$
 
 ---
 
-*Derivation  of $w_2^+$, $w_3^+$, and $w_3^+$ excluded because derivation is redundant*
+*Derivation  of $w_2^+$, $w_3^+$, and $w_4^+$ excluded because derivation is redundant*
 
 ---
 

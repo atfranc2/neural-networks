@@ -1,0 +1,1 @@
+str(value) for value in [*nums, *chars, *upper_chars]
