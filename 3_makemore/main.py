@@ -1,4 +1,5 @@
 import torch
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import string
@@ -69,6 +70,9 @@ def get_char_index_map():
         in enumerate(chars)
     }
 
+def get_index_char_map():
+    return {index:char for char, index in get_char_index_map().items()}
+
 def plot_bigram_frequency(name_list:list[str]):
     # Define row and column labels
     char_index_map = get_char_index_map()
@@ -129,7 +133,52 @@ def bigram_tensor(name_list:list[str]):
     
     return tensor
 
-name_list = get_word_list()
-tensor = bigram_tensor(name_list)
-plot_bigram_frequency(name_list)
+# name_list = get_word_list()
+# tensor = bigram_tensor(name_list)
+# plot_bigram_frequency(name_list)
 
+# Tourch generator 2147438647
+# Torch multinomial -> Use generator to sample from 
+
+def tensor_to_csv(tensor:torch.Tensor, file_name:str|None=None):
+    file_name = file_name if file_name is not None else "bigram_frequncy.csv"
+    with open(f"/app/3_makemore/data/{file_name}", "w") as file:
+        writer = csv.writer(file)
+
+        for row_index in range(tensor.shape[0]):
+            writer.writerow([value.item() for value in tensor[row_index]])
+
+def csv_to_tensor(file_name, transform_fn):
+    data = []
+    with open(f"/app/3_makemore/data/{file_name}", "r") as file:
+        reader = csv.reader(file)
+        for line in reader:
+            data.append([transform_fn(value) for value in line])
+
+    return torch.tensor(data)
+
+# print(csv_to_tensor("bigram_frequncy.csv", lambda value: int(value)))
+
+def make_names(): 
+    # name_list = get_word_list()
+    # tensor = bigram_tensor(name_list)
+    index_char_map = get_index_char_map()
+    tensor = csv_to_tensor("bigram_frequncy.csv", lambda value: int(value)).float()
+    tensor_row_sum = torch.sum(tensor, dim=1).unsqueeze(1) # Row-wise sum represented as a column vector (without unsqueeze you get a row vector)
+    tensor_row_p = tensor / tensor_row_sum # Creates a bigram probability matrix (e.g. how likely is it that to have "ba")
+    generator = torch.Generator().manual_seed(2147483647)
+    for i in range(50):
+        row_index = 0
+        name = ""
+        while True:
+            sampled_index = torch.multinomial(tensor_row_p[row_index], 1, replacement=True, generator=generator)
+            char = index_char_map.get(int(sampled_index.item()))
+            if char == STOP_TOKEN:
+                break
+
+            name += char
+            row_index = int(sampled_index.item())
+
+        print(name)
+
+make_names()
