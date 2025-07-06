@@ -414,7 +414,7 @@ class NetBigramModel:
         weights = torch.randn((self.n_chars, self.n_chars), generator=generator, requires_grad=True)
 
         loss = torch.tensor(0)
-        prev_loss = torch.tensor(0)
+        losses = []
         for epoch in range(epochs):
             # print(f"epoch {epoch + 1} / {epochs}")
             # Initial output. Do matrix multiplication on inputs and weights ([n_examples x 28] x [28, 28] => [n_examples x 28])
@@ -428,11 +428,10 @@ class NetBigramModel:
             # Givens an example at index x, find the probability at index y. Calculate the negative mean log likelihood
             regularization = regularization_strength * (weights**2).mean() # Makes output probabilities more uniform. Helps to overcome non-uniformities in data such as 0 counts for some character pairs. 
             loss = -1 * probs[torch.arange(len(x_train)), y_train].log().mean() + regularization
+            losses.append(loss.item())
             weights.grad = None # More efficient than setting to 0
             loss.backward()
             weights.data += -learning_rate * weights.grad
-            # print(f"Loss: {loss} (delta={loss - prev_loss})")
-            prev_loss = loss
 
         self.loss = loss
         self.trained_weights = weights
@@ -476,8 +475,26 @@ class NetBigramModel:
         return predictions
 
 
-net_model = NetBigramModel()
-net_model.train(epochs=100, learning_rate=50, regularization_strength=0.01)
-print("Network Bigram Loss:", net_model.loss)
-print("Network Bigram:", net_model.predict(N=10))
-print("Evaluation:", net_model.eval())
+# net_model = NetBigramModel()
+# net_model.train(epochs=50, learning_rate=50, regularization_strength=0.01)
+# print("Network Bigram Loss:", net_model.loss)
+# print("Network Bigram:", net_model.predict(N=10))
+# print("Evaluation:", net_model.eval())
+
+
+epochs = list(range(1, 51))
+nll_loss = [3.837662935256958, 3.4026334285736084, 3.1524832248687744, 3.0091545581817627, 2.9122118949890137, 2.8427274227142334, 2.792327404022217, 2.7545053958892822, 2.7249317169189453, 2.701021194458008, 2.6812002658843994, 2.6644513607025146, 2.650084972381592, 2.637615919113159, 2.6266934871673584, 2.617053747177124, 2.6084909439086914, 2.6008400917053223, 2.5939643383026123, 2.587752103805542, 2.582110643386841, 2.576963424682617, 2.572247266769409, 2.5679097175598145, 2.563908100128174, 2.5602047443389893, 2.5567691326141357, 2.553574562072754, 2.550597667694092, 2.5478177070617676, 2.545217275619507, 2.5427803993225098, 2.540492534637451, 2.5383405685424805, 2.536313772201538, 2.5344011783599854, 2.532594680786133, 2.5308845043182373, 2.529263973236084, 2.5277259349823, 2.5262646675109863, 2.524874687194824, 2.5235507488250732, 2.5222880840301514, 2.521083116531372, 2.5199320316314697, 2.5188307762145996, 2.51777720451355, 2.516767740249634, 2.5157997608184814]
+plt.figure(figsize=(8, 5))
+plt.plot(epochs, nll_loss, marker='o', linestyle='-', color='steelblue', label='NLL Loss')
+
+# Labels and title
+plt.title('Training Loss Over Epochs')
+plt.xlabel('Epoch')
+plt.ylabel('Negative Log Likelihood Loss')
+plt.ylim(bottom=0)
+plt.axhline(y=2.4541, color='red', linestyle='--', label=f'Table Based NLL = {2.4541:.4f}')
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.savefig("/app/3_makemore/figures/training_loss_over_epochs.png", dpi=300, bbox_inches="tight")
+plt.show()
