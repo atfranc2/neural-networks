@@ -8,6 +8,7 @@ import string
 import math
 import random
 import json
+from matplotlib.animation import FuncAnimation
 
 def plot_loss_compare(model1:"NeuralModel", model2:"NeuralModel"):
     # Create figure and two subplots side by side
@@ -321,9 +322,11 @@ class NeuralModel:
         self.losses = []
         self.pre_activations = []
         self.activations = []
+        self.C_STEPS = []
         for epoch in range(epochs):
-            if epoch % 5000 == 0: 
+            if epoch % 100 == 0: 
                 print(f"Epoch {epoch}/{epochs}")
+            
             
             batch_indexes = torch.randint(0, X.shape[0], (batch_size,)) if batch_size else None
             train_X = self.C[X[batch_indexes]] if batch_size else self.C[X]
@@ -335,9 +338,9 @@ class NeuralModel:
             o1_activated = torch.tanh(o1)
 
             # Makes certain operations more efficient
-            with torch.no_grad():
-                self.pre_activations.extend(o1.tolist())
-                self.activations.extend(o1_activated.tolist())
+            # with torch.no_grad():
+            #     self.pre_activations.extend(o1.tolist())
+            #     self.activations.extend(o1_activated.tolist())
             
             logits =  (o1_activated @ self.W2) + self.b2
 
@@ -363,6 +366,9 @@ class NeuralModel:
 
             for parameter in parameters:
                 parameter.data += parameter.grad * -decayed_lr
+
+            if epoch % 1000 == 0: 
+                self.C_STEPS.append(self.C.detach().cpu().numpy().copy())
 
         # print([loss.item() for loss in losses])
         # print(mean_nll.item())
@@ -506,6 +512,75 @@ class NeuralModel:
 
         return loss_compares
 
+    def plot_embeddings_gif(self):
+        C_STEPS = self.C_STEPS
+
+        # two panels: left = animated, right = static final
+        fig, (ax_anim, ax_final) = plt.subplots(1, 2, figsize=(10, 5))
+
+        scatter = ax_anim.scatter([], [], s=100, color='skyblue', edgecolors='black', zorder=2)
+        texts = []
+
+        def do_pca(C):
+            if self.embedding_size > 2:
+                C_centered = C - C.mean(axis=0)
+                cov = np.cov(C_centered, rowvar=False)
+                eigvals, eigvecs = np.linalg.eigh(cov)
+                sorted_idx = np.argsort(eigvals)[::-1]
+                eigvecs = eigvecs[:, sorted_idx]
+                return C_centered @ eigvecs[:, :2], True
+            else:
+                return C[:, :2], False
+
+        # --- setup left panel (animated) ---
+        def init():
+            ax_anim.set_xlim(-5, 5)
+            ax_anim.set_ylim(-5, 5)
+            ax_anim.grid(True)
+            ax_anim.set_aspect('equal', adjustable='box')
+            return scatter,
+
+        def update(frame_idx):
+            nonlocal texts
+            for t in texts:
+                t.remove()
+            texts = []
+
+            C = C_STEPS[frame_idx]
+            data, did_pca = do_pca(C)
+            x, y = data[:, 0], data[:, 1]
+            scatter.set_offsets(np.c_[x, y])
+
+            for xi, yi, label in zip(x, y, [self.index_char_map[i] for i in range(len(x))]):
+                texts.append(ax_anim.text(xi, yi, label, ha='center', va='center',
+                                        fontsize=6, fontweight='bold', zorder=3))
+
+            ax_anim.set_title(f"Epoch {(frame_idx+1)*1000} {'(PCA)' if did_pca else ''}")
+            return scatter, *texts
+
+        # --- setup right panel (static final snapshot) ---
+        C_final = C_STEPS[-1]
+        data_final, did_pca_final = do_pca(C_final)
+        xf, yf = data_final[:, 0], data_final[:, 1]
+        ax_final.scatter(xf, yf, s=100, color='skyblue', edgecolors='black', zorder=2)
+
+        for xi, yi, label in zip(xf, yf, [self.index_char_map[i] for i in range(len(xf))]):
+            ax_final.text(xi, yi, label, ha='center', va='center',
+                        fontsize=6, fontweight='bold', zorder=3)
+
+        ax_final.set_title(f"Final Epoch {'(PCA)' if did_pca_final else ''}")
+        ax_final.grid(True)
+        ax_final.set_aspect('equal', adjustable='box')
+        ax_final.set_xlim(-5, 5)
+        ax_final.set_ylim(-5, 5)
+
+        # --- make animation ---
+        ani = FuncAnimation(fig, update, frames=len(C_STEPS),
+                            init_func=init, interval=500, blit=False, repeat=True)
+
+        ani.save("/app/3_makemore_v2/figures/embeddings.gif", writer="pillow", dpi=120)
+        plt.close(fig)
+    
     def plot_embeddings(self):
         C = self.C.detach().numpy()
         did_pca = False
@@ -555,86 +630,87 @@ class NeuralModel:
 model1 = NeuralModel()
 model2 = NeuralModel()
 # model.explore()
-# model.train(
-#     context_size=3, 
-#     embedding_size=10, 
-#     hidden_size=500, 
-#     epochs=30000,
-#     regularization_strength=0.00001,
-#     learning_rate=0.5,
-#     batch_size=500,
-#     pickle=False
-# )
+model1.train(
+    context_size=3, 
+    embedding_size=10, 
+    hidden_size=500, 
+    epochs=20000,
+    regularization_strength=0.00001,
+    learning_rate=0.5,
+    batch_size=100,
+    pickle=False
+)
+model1.plot_embeddings_gif()
 # model.load()
 # model.eval("test")
 # model.predict(n=100)
 # model.plot_embeddings()
 epochs = 1
-model1.train(
-    context_size=3, 
-    embedding_size=10, 
-    hidden_size=300, 
-    epochs=epochs,
-    regularization_strength=0.00001,
-    learning_rate=0.5,
-    batch_size=500,
-    pickle=False
-)
-model2.train(
-    context_size=3, 
-    embedding_size=10, 
-    hidden_size=300, 
-    epochs=epochs,
-    regularization_strength=0.00001,
-    learning_rate=0.5,
-    batch_size=500,
-    pickle=False,
-    weight_adjustments=[0.01, 0, 0.01, 0]
-)
+# model1.train(
+#     context_size=3, 
+#     embedding_size=10, 
+#     hidden_size=300, 
+#     epochs=epochs,
+#     regularization_strength=0.00001,
+#     learning_rate=0.5,
+#     batch_size=500,
+#     pickle=False
+# )
+# model2.train(
+#     context_size=3, 
+#     embedding_size=10, 
+#     hidden_size=300, 
+#     epochs=epochs,
+#     regularization_strength=0.00001,
+#     learning_rate=0.5,
+#     batch_size=500,
+#     pickle=False,
+#     weight_adjustments=[0.01, 0, 0.01, 0]
+# )
 # print(model1.pre_activations)
-pa_tensor = torch.tensor(model1.pre_activations).view(1, -1).tolist()
-a_tensor = torch.tensor(model1.activations).view(1, -1)
-tail_perc = (a_tensor.abs() > 0.99).sum()/a_tensor.count_nonzero() * 100
-a_tensor_list = torch.tensor(model1.activations).view(1, -1).tolist()
+# pa_tensor = torch.tensor(model1.pre_activations).view(1, -1).tolist()
+# a_tensor = torch.tensor(model1.activations).view(1, -1)
+# tail_perc = (a_tensor.abs() > 0.99).sum()/a_tensor.count_nonzero() * 100
+# a_tensor_list = torch.tensor(model1.activations).view(1, -1).tolist()
 
-fig = plt.figure(figsize=(12, 8))
-gs = gridspec.GridSpec(2, 2, height_ratios=[3, 1])  # 2 rows, 2 cols, bottom row smaller
+# fig = plt.figure(figsize=(12, 8))
+# gs = gridspec.GridSpec(2, 2, height_ratios=[3, 1])  # 2 rows, 2 cols, bottom row smaller
 
-# Hist 1 (top-left)
-ax1 = fig.add_subplot(gs[0, 0])
-ax1.hist(pa_tensor, bins=35, color='skyblue', edgecolor='black', alpha=0.7)
-ax1.set_title('Pre-Activations')
-ax1.axvline(x=-2.65, color='red', linestyle='-', label='Tanh Tail Boundary')
-ax1.axvline(x=2.65, color='red', linestyle='-')
-ax1.plot([], [], ' ', label=f'~{tail_perc:.2f}% Tail Region')
-ax1.legend()
-ax1.grid(True, linestyle='--', alpha=0.5)
+# # Hist 1 (top-left)
+# ax1 = fig.add_subplot(gs[0, 0])
+# ax1.hist(pa_tensor, bins=35, color='skyblue', edgecolor='black', alpha=0.7)
+# ax1.set_title('Pre-Activations')
+# ax1.axvline(x=-2.65, color='red', linestyle='-', label='Tanh Tail Boundary')
+# ax1.axvline(x=2.65, color='red', linestyle='-')
+# ax1.plot([], [], ' ', label=f'~{tail_perc:.2f}% Tail Region')
+# ax1.legend()
+# ax1.grid(True, linestyle='--', alpha=0.5)
 
-# Hist 2 (top-right)
-ax2 = fig.add_subplot(gs[0, 1])
-ax2.hist(a_tensor_list, bins=35, color='lightgreen', edgecolor='black', alpha=0.7)
-ax2.set_title('Activations')
-ax2.grid(True, linestyle='--', alpha=0.5)
+# # Hist 2 (top-right)
+# ax2 = fig.add_subplot(gs[0, 1])
+# ax2.hist(a_tensor_list, bins=35, color='lightgreen', edgecolor='black', alpha=0.7)
+# ax2.set_title('Activations')
+# ax2.grid(True, linestyle='--', alpha=0.5)
 
-ac_img = (torch.tensor(model1.activations).abs() > 0.99)
-zero_cols = (ac_img.sum(dim=0) == 0).nonzero(as_tuple=True)[0]
+# ac_img = (torch.tensor(model1.activations).abs() > 0.99)
+# zero_cols = (ac_img.sum(dim=0) == 0).nonzero(as_tuple=True)[0]
 
-ax3 = fig.add_subplot(gs[1, :])  # span both columns
-ax3.imshow(ac_img.tolist(), cmap='gray', aspect='auto')
-ax3.set_xlabel("Hidden Parameter Index")
-ax3.set_ylabel("Example Number")
+# ax3 = fig.add_subplot(gs[1, :])  # span both columns
+# ax3.imshow(ac_img.tolist(), cmap='gray', aspect='auto')
+# ax3.set_xlabel("Hidden Parameter Index")
+# ax3.set_ylabel("Example Number")
 
-for col in zero_cols.tolist():
-    rect = plt.Rectangle(
-        (col - 0.5, -0.5), 1, ac_img.shape[0],  # (x, y), width, height
-        linewidth=20, edgecolor='red', facecolor='none'
-    )
-    ax3.add_patch(rect)
+# for col in zero_cols.tolist():
+#     rect = plt.Rectangle(
+#         (col - 0.5, -0.5), 1, ac_img.shape[0],  # (x, y), width, height
+#         linewidth=20, edgecolor='red', facecolor='none'
+#     )
+#     ax3.add_patch(rect)
 # Grid for better readability
 
 # Show plot
-plt.tight_layout()
-plt.savefig("/app/3_makemore_v2/figures/random_vs_adjusted_weight_pre_activations.png", dpi=300, bbox_inches="tight")
+# plt.tight_layout()
+# plt.savefig("/app/3_makemore_v2/figures/random_vs_adjusted_weight_pre_activations.png", dpi=300, bbox_inches="tight")
 
 # plot_loss_compare(model1, model2)
 
