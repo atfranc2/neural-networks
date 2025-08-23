@@ -338,9 +338,9 @@ class NeuralModel:
             o1_activated = torch.tanh(o1)
 
             # Makes certain operations more efficient
-            # with torch.no_grad():
-            #     self.pre_activations.extend(o1.tolist())
-            #     self.activations.extend(o1_activated.tolist())
+            with torch.no_grad():
+                self.pre_activations.append(o1.detach().cpu())
+                self.activations.append(o1_activated.detach().cpu())
             
             logits =  (o1_activated @ self.W2) + self.b2
 
@@ -615,7 +615,9 @@ class NeuralModel:
             plt.text(xi, yi, label, ha='center', va='center', fontsize=4, fontweight='bold', zorder=3)
 
         # Styling
-        plt.title(f"Labeled Scatter Plot with Large Markers {'(PCA)' if did_pca else ''}")
+        plt.title(f"Character Embeddings {'(PCA)' if did_pca else ''}")
+        plt.xlabel("PC1")
+        plt.ylabel("PC2")
         plt.grid(True)
         plt.gca().set_aspect('equal', adjustable='box')
         plt.savefig("/app/3_makemore_v2/figures/embeddings.png", dpi=300, bbox_inches="tight")
@@ -630,75 +632,79 @@ class NeuralModel:
 model1 = NeuralModel()
 model2 = NeuralModel()
 # model.explore()
-model1.train(
-    context_size=3, 
-    embedding_size=10, 
-    hidden_size=500, 
-    epochs=20000,
-    regularization_strength=0.00001,
-    learning_rate=0.5,
-    batch_size=100,
-    pickle=False
-)
-model1.plot_embeddings_gif()
-# model.load()
-# model.eval("test")
-# model.predict(n=100)
-# model.plot_embeddings()
-epochs = 1
 # model1.train(
 #     context_size=3, 
 #     embedding_size=10, 
-#     hidden_size=300, 
-#     epochs=epochs,
+#     hidden_size=500, 
+#     epochs=20000,
 #     regularization_strength=0.00001,
 #     learning_rate=0.5,
-#     batch_size=500,
+#     batch_size=100,
 #     pickle=False
 # )
-# model2.train(
-#     context_size=3, 
-#     embedding_size=10, 
-#     hidden_size=300, 
-#     epochs=epochs,
-#     regularization_strength=0.00001,
-#     learning_rate=0.5,
-#     batch_size=500,
-#     pickle=False,
-#     weight_adjustments=[0.01, 0, 0.01, 0]
-# )
-# print(model1.pre_activations)
-# pa_tensor = torch.tensor(model1.pre_activations).view(1, -1).tolist()
-# a_tensor = torch.tensor(model1.activations).view(1, -1)
-# tail_perc = (a_tensor.abs() > 0.99).sum()/a_tensor.count_nonzero() * 100
-# a_tensor_list = torch.tensor(model1.activations).view(1, -1).tolist()
+# model1.plot_embeddings_gif()
+# model.load()
+# model.eval("test")
+# model.predict(n=100)
+# model1.plot_embeddings()
+epochs = 1
+model1.train(
+    context_size=3, 
+    embedding_size=10, 
+    hidden_size=300, 
+    epochs=epochs,
+    regularization_strength=0.00001,
+    learning_rate=0.5,
+    batch_size=500,
+    pickle=False
+)
+model2.train(
+    context_size=3, 
+    embedding_size=10, 
+    hidden_size=300, 
+    epochs=epochs,
+    regularization_strength=0.00001,
+    learning_rate=0.5,
+    batch_size=500,
+    pickle=False,
+    weight_adjustments=[0.01, 0, 0.01, 0]
+)
+plot_model = model2
+plot_model_file = "optimized_weight_pre_activations"
+pa_tensor = torch.cat(plot_model.pre_activations, dim=0).view(-1)
+a_tensor = torch.cat(plot_model.activations, dim=0).view(-1)
 
-# fig = plt.figure(figsize=(12, 8))
-# gs = gridspec.GridSpec(2, 2, height_ratios=[3, 1])  # 2 rows, 2 cols, bottom row smaller
+# calculate tail percentage
+tail_perc = (a_tensor.abs() > 0.99).sum() / a_tensor.count_nonzero() * 100
 
-# # Hist 1 (top-left)
-# ax1 = fig.add_subplot(gs[0, 0])
-# ax1.hist(pa_tensor, bins=35, color='skyblue', edgecolor='black', alpha=0.7)
-# ax1.set_title('Pre-Activations')
-# ax1.axvline(x=-2.65, color='red', linestyle='-', label='Tanh Tail Boundary')
-# ax1.axvline(x=2.65, color='red', linestyle='-')
-# ax1.plot([], [], ' ', label=f'~{tail_perc:.2f}% Tail Region')
-# ax1.legend()
-# ax1.grid(True, linestyle='--', alpha=0.5)
+fig = plt.figure(figsize=(12, 8))
+gs = gridspec.GridSpec(2, 2, height_ratios=[3, 1])  # 2 rows, 2 cols, bottom row smaller
 
-# # Hist 2 (top-right)
-# ax2 = fig.add_subplot(gs[0, 1])
-# ax2.hist(a_tensor_list, bins=35, color='lightgreen', edgecolor='black', alpha=0.7)
-# ax2.set_title('Activations')
-# ax2.grid(True, linestyle='--', alpha=0.5)
+# Hist 1 (top-left)
+ax1 = fig.add_subplot(gs[0, 0])
+ax1.hist(pa_tensor, bins=35, color='skyblue', edgecolor='black', alpha=0.7)
+ax1.set_title('Pre-Activations')
+ax1.axvline(x=-2.65, color='red', linestyle='-', label='Tanh Tail Boundary')
+ax1.axvline(x=2.65, color='red', linestyle='-')
+ax1.plot([], [], ' ', label=f'~{tail_perc:.2f}% Tail Region')
+ax1.legend()
+ax1.grid(True, linestyle='--', alpha=0.5)
+ax1.set_xlim(-25, 25)
 
-# ac_img = (torch.tensor(model1.activations).abs() > 0.99)
-# zero_cols = (ac_img.sum(dim=0) == 0).nonzero(as_tuple=True)[0]
+# Hist 2 (top-right)
+ax2 = fig.add_subplot(gs[0, 1])
+ax2.hist(a_tensor.view(-1).numpy(), bins=35, color='lightgreen', edgecolor='black', alpha=0.7)
+ax2.set_title('Activations')
+ax2.grid(True, linestyle='--', alpha=0.5)
+ax2.set_xlim(-1, 1)
 
-# ax3 = fig.add_subplot(gs[1, :])  # span both columns
-# ax3.imshow(ac_img.tolist(), cmap='gray', aspect='auto')
-# ax3.set_xlabel("Hidden Parameter Index")
-# ax3.set_ylabel("Example Number")
+ac_img = (a_tensor.view(-1, plot_model.activations[0].shape[-1]).abs() > 0.99)
+zero_cols = (ac_img.sum(dim=0) == 0).nonzero(as_tuple=True)[0]
+
+ax3 = fig.add_subplot(gs[1, :])  # span both columns
+ax3.imshow(ac_img.tolist(), cmap='gray', aspect='auto')
+ax3.set_xlabel("Hidden Parameter Index")
+ax3.set_ylabel("Example Number")
 
 # for col in zero_cols.tolist():
 #     rect = plt.Rectangle(
@@ -709,8 +715,8 @@ epochs = 1
 # Grid for better readability
 
 # Show plot
-# plt.tight_layout()
-# plt.savefig("/app/3_makemore_v2/figures/random_vs_adjusted_weight_pre_activations.png", dpi=300, bbox_inches="tight")
+plt.tight_layout()
+plt.savefig(f"/app/3_makemore_v2/figures/{plot_model_file}.png", dpi=300, bbox_inches="tight")
 
 # plot_loss_compare(model1, model2)
 
