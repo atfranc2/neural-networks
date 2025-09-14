@@ -10,6 +10,75 @@ import random
 import json
 from matplotlib.animation import FuncAnimation
 
+
+class Linear:
+    def __init__(self, in_features, out_features, bias=True):
+        kaiming = (1/in_features)**0.5
+        self.in_features = in_features
+        self.out_features = out_features
+        self.W = torch.randn(in_features, out_features) * torch.tensor(kaiming)
+        self.b = torch.zeros(1, out_features) * kaiming if bias else None
+
+    def parameters(self):
+        params = [self.W]
+        if self.b:
+            params.append(self.b)
+
+        return params
+
+    def __getitem__(self, key):
+        return self.W[key]
+
+    def __matmul__(self, tensor:torch.Tensor) -> torch.Tensor:
+        result = self.W @ tensor
+        if self.b:
+            result += self.b
+        
+        return result
+
+
+class BatchNorm1D:
+    def __init__(self, num_features, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True):
+        self.training = True
+        self.num_features = num_features
+        self.eps = eps
+
+        # Affine Parameters
+        self.affine = affine
+        self.shift = torch.zeros(1, num_features) # Beta
+        self.scale = torch.ones(1, num_features) # Gamma
+        
+        # Running Stats (buffers)
+        self.momentum = momentum
+        self.track_running_stats = track_running_stats
+        self.running_mean = torch.zeros(1, num_features)
+        self.running_var = torch.ones(1, num_features)
+
+    def parameters(self):
+        return [self.shift, self.scale]
+
+    def normalize(self, tensor:torch.Tensor) -> torch.Tensor:
+        if self.training:
+            mean = tensor.mean(0, keepdim=True)
+            var = tensor.var(0, keepdim=True)
+        else:
+            mean = self.running_mean
+            var = self.running_var
+
+        if self.track_running_stats and self.training:
+            with torch.no_grad():
+                self.running_mean = self.running_mean * (1 - self.momentum) + mean * self.momentum
+                self.running_var = self.running_var * (1 - self.momentum) + var * self.momentum
+
+        normalized = (tensor - mean) / torch.sqrt(var + self.eps)
+        if self.affine: 
+            normalized = self.scale * normalized + self.shift
+        
+        self.out = normalized
+        
+        return normalized
+
+
 class NeuralModel:
     """
     Implements the Neural Probabilistic model described in: 
@@ -133,7 +202,7 @@ class NeuralModel:
         # BatchNorm Reference - https://arxiv.org/abs/1502.03167
         
         learning_rate = 0.8
-        batch_size = 60
+        batch_size = 500
         hidden_size = 300
         embedding_size = 10
         self.context_size = 3
@@ -195,8 +264,8 @@ class NeuralModel:
             # print("batch_mean:", batch_mean.shape)
 
             with torch.no_grad():
-                self.bn_running_mean = 0.999 * self.bn_running_mean + 0.001 * batch_mean
-                self.bn_running_std = 0.999 * self.bn_running_std + 0.001 * batch_std
+                self.bn_running_mean = 0.9 * self.bn_running_mean + 0.1 * batch_mean
+                self.bn_running_std = 0.9 * self.bn_running_std + 0.1 * batch_std
 
             bn_pre_activation = self.bn_scale * ((pre_activation - batch_mean) / batch_std) + self.bn_shift
             activation = torch.tanh(bn_pre_activation)
@@ -210,18 +279,26 @@ class NeuralModel:
             for parameter in parameters: 
                 parameter.grad = None
 
-            # Capture snapshot every 500 iterations (pre-activation distribution + BN params)
+            # Capture snapshot every 500 iterations (node-75 distributions + BN params)
             if epoch % 500 == 0:
                 with torch.no_grad():
+                    node_idx = 5  # 0-based index for the 75th node
+                    raw_node = pre_activation[:, node_idx].detach().cpu().flatten().numpy()
+                    norm_full = self.bn_scale * ((pre_activation - batch_mean) / batch_std) + self.bn_shift
+                    norm_node = norm_full[:, node_idx].detach().cpu().flatten().numpy()
+                    raw_mu = float(np.mean(raw_node)); raw_sd = float(np.std(raw_node))
+                    norm_mu = float(np.mean(norm_node)); norm_sd = float(np.std(norm_node))
                     self._snapshots.append({
                         'epoch': epoch,
-                        'pre_activation': pre_activation.detach().cpu().flatten().numpy(),
-                        'pre_activation_mean': pre_activation.detach().cpu().flatten().numpy(),
-                        'bn_pre_activation': bn_pre_activation.detach().cpu().flatten().numpy(),
-                        'bn_scale_mean': self.bn_scale.mean().item(),
-                        'bn_shift_mean': self.bn_shift.mean().item(),
-                        'bn_scale': self.bn_scale.detach().cpu().flatten().numpy(),
-                        'bn_shift': self.bn_shift.detach().cpu().flatten().numpy(),
+                        'node_idx': node_idx,
+                        'raw_node': raw_node,
+                        'norm_node': norm_node,
+                        'raw_mu': raw_mu,
+                        'raw_sd': raw_sd,
+                        'norm_mu': norm_mu,
+                        'norm_sd': norm_sd,
+                        'node_scale': float(self.bn_scale[0, node_idx].item()),
+                        'node_shift': float(self.bn_shift[0, node_idx].item()),
                     })
 
             loss.backward()
@@ -233,6 +310,33 @@ class NeuralModel:
         self.loss = loss.data
 
         # Plotting/animation is handled outside the class after training
+        
+    
+    def train_v2(self, epochs:int = 10000):
+        # MLP Reference
+        # BatchNorm Reference - https://arxiv.org/abs/1502.03167
+        
+        learning_rate = 0.8
+        batch_size = 60
+        hidden_size = 300
+        embedding_size = 10
+        self.context_size = 3
+
+        self.train_words, self.validate_words, self.test_words = self.split(self.words)
+        
+        # Each x is a vector of length context size. Each element containing the character index
+        self.X, self.Y = self.n_gram_tensors(self.train_words, self.context_size)
+
+        self.C = Linear(self.n_chars, embedding_size, bias=False)
+        self.L1 = Linear(embedding_size*self.context_size, hidden_size, bias=False)
+        self.L2 = Linear(hidden_size, self.n_chars, bias=True)
+        self.Norm = BatchNorm1D(hidden_size)
+        
+        for epoch in range(epochs):
+            batch_indexes = torch.randint(0, self.X.shape[0], batch_size)
+            batch_examples = self.X[batch_indexes]
+            batch_input = self.C[batch_examples]
+
         
     
     def eval(self, split="validate"):
@@ -257,41 +361,121 @@ class NeuralModel:
 
 # python /app/3_makemore_v3_batchnorm/main.py
 model = NeuralModel()
-model.train(epochs=10000)
+model.train(epochs=15000)
 
-# Build animation outside the class: only pre-activation histogram
+# Build animation outside the class: node-75 raw vs normalized histograms
 if len(model._snapshots) > 0:
-    # Compute global x-limits across all snapshots and fixed bins
-    all_vals = np.concatenate([s['pre_activation'] for s in model._snapshots])
-    xmin, xmax = float(all_vals.min()), float(all_vals.max())
-    # Add small padding so extremes don't clip
-    pad = 0.05 * (xmax - xmin + 1e-8)
-    xmin -= pad
-    xmax += pad
-    bins = np.linspace(xmin, xmax, 50)
+    # Global limits per distribution type (raw vs normalized)
+    all_raw = np.concatenate([s['raw_node'] for s in model._snapshots])
+    all_norm = np.concatenate([s['norm_node'] for s in model._snapshots])
+    rmin, rmax = float(all_raw.min()), float(all_raw.max())
+    nmin, nmax = float(all_norm.min()), float(all_norm.max())
+    rpad = 0.05 * (rmax - rmin + 1e-8)
+    npad = 0.05 * (nmax - nmin + 1e-8)
+    rmin -= rpad; rmax += rpad
+    nmin -= npad; nmax += npad
+    r_bins = np.linspace(rmin, rmax, 75)
+    n_bins = np.linspace(nmin, nmax, 75)
 
-    fig, ax = plt.subplots(figsize=(8, 4))
+    # 2x2 layout: top row histograms, bottom row lines of mean/std across epochs
+    fig, axes = plt.subplots(2, 2, figsize=(12, 7), gridspec_kw={'height_ratios': [2, 1]})
+    ax_raw, ax_norm = axes[0]
+    ax_mu, ax_sd = axes[1]
+
+    # Precompute full time-series once for static bottom row
+    epochs = np.array([s['epoch'] for s in model._snapshots])
+    raw_mus = np.array([s.get('raw_mu', float(np.mean(s['raw_node']))) for s in model._snapshots])
+    raw_sds = np.array([s.get('raw_sd', float(np.std(s['raw_node']))) for s in model._snapshots])
+    norm_mus = np.array([s.get('norm_mu', float(np.mean(s['norm_node']))) for s in model._snapshots])
+    norm_sds = np.array([s.get('norm_sd', float(np.std(s['norm_node']))) for s in model._snapshots])
 
     def update_hist(i):
         snap = model._snapshots[i]
-        ax.cla()
-        ax.hist(snap['pre_activation'], bins=bins, color='tab:blue', alpha=0.75)
-        # Means of bn_scale and bn_shift formatted to 4 decimals
-        gamma_mean = float(np.mean(snap['bn_scale_mean']))
-        beta_mean = float(np.mean(snap['bn_shift_mean']))
-        title = f"Pre-activations — epoch {snap['epoch']} | gamma={gamma_mean:.4f}, beta={beta_mean:.4f}"
-        ax.set_title(title)
-        ax.set_xlabel("value")
-        ax.set_ylabel("count")
-        ax.set_xlim(xmin, xmax)
+        ax_raw.cla(); ax_norm.cla()
+
+        mu_r = float(np.mean(snap['raw_node']))
+        sd_r = float(np.std(snap['raw_node']))
+        ax_raw.hist(snap['raw_node'], bins=r_bins, color='tab:blue', alpha=0.75,
+                    label=f"Raw: μ={mu_r:.4f}, σ={sd_r:.4f}")
+        ax_raw.set_title(f"Node {snap['node_idx']+1} raw — epoch {snap['epoch']}")
+        ax_raw.set_xlabel("value"); ax_raw.set_ylabel("count")
+        ax_raw.set_xlim(rmin, rmax)
+        ax_raw.legend(frameon=False)
+
+        mu_n = float(np.mean(snap['norm_node']))
+        sd_n = float(np.std(snap['norm_node']))
+        gamma = snap['node_scale']; beta = snap['node_shift']
+        ax_norm.hist(snap['norm_node'], bins=n_bins, color='tab:orange', alpha=0.75,
+                     label=f"Norm: μ={mu_n:.4f}, σ={sd_n:.4f}\nscale={gamma:.4f}, shift={beta:.4f}")
+        ax_norm.set_title(f"Node {snap['node_idx']+1} normalized — epoch {snap['epoch']}")
+        ax_norm.set_xlabel("value"); ax_norm.set_ylabel("count")
+        ax_norm.set_xlim(nmin, nmax)
+        ax_norm.legend(frameon=False)
+
+        # Time-series lines always show full data (not animated)
+        ax_mu.cla()
+        ax_mu.plot(epochs, raw_mus, color='tab:blue', label='Raw μ')
+        ax_mu.plot(epochs, norm_mus, color='tab:orange', label='Norm μ')
+        ax_mu.set_title(f'Mean over epochs (node {snap['node_idx']+1})')
+        ax_mu.set_xlabel('epoch'); ax_mu.set_ylabel('mean')
+        ax_mu.grid(alpha=0.2, linestyle=':'); ax_mu.legend(frameon=False)
+
+        ax_sd.cla()
+        ax_sd.plot(epochs, raw_sds, color='tab:blue', label='Raw σ')
+        ax_sd.plot(epochs, norm_sds, color='tab:orange', label='Norm σ')
+        ax_sd.set_title(f'Std over epochs (node {snap['node_idx']+1})')
+        ax_sd.set_xlabel('epoch'); ax_sd.set_ylabel('std')
+        ax_sd.grid(alpha=0.2, linestyle=':'); ax_sd.legend(frameon=False)
+
         fig.tight_layout()
         return []
 
     anim = FuncAnimation(fig, update_hist, frames=len(model._snapshots), interval=1200, blit=False, repeat_delay=1500)
     try:
+        snap = model._snapshots[0]['node_idx']+1
         from matplotlib.animation import PillowWriter
-        anim.save('3_makemore_v3_batchnorm/preactivations.gif', writer=PillowWriter(fps=1))
-        print("Saved animation to 3_makemore_v3_batchnorm/preactivations.gif")
+        import os
+        os.makedirs('3_makemore_v3_batchnorm/figures', exist_ok=True)
+        anim.save(f'3_makemore_v3_batchnorm/figures/node_{snap}_activations.gif', writer=PillowWriter(fps=1))
+        print("Saved animation to 3_makemore_v3_batchnorm/figures/node75_activations.gif")
+
+        # Save a separate static PNG with the full time-series lines
+        fig_lines, (ax_mu_png, ax_sd_png) = plt.subplots(1, 2, figsize=(12, 4))
+        ax_mu_png.plot(epochs, raw_mus, color='tab:blue', label='Raw μ')
+        ax_mu_png.plot(epochs, norm_mus, color='tab:orange', label='Norm μ')
+        ax_mu_png.set_title(f'Mean over epochs (node {snap})')
+        ax_mu_png.set_xlabel('epoch'); ax_mu_png.set_ylabel('mean')
+        ax_mu_png.grid(alpha=0.2, linestyle=':'); ax_mu_png.legend(frameon=False)
+
+        ax_sd_png.plot(epochs, raw_sds, color='tab:blue', label='Raw σ')
+        ax_sd_png.plot(epochs, norm_sds, color='tab:orange', label='Norm σ')
+        ax_sd_png.set_title(f'Std over epochs (node {snap})')
+        ax_sd_png.set_xlabel('epoch'); ax_sd_png.set_ylabel('std')
+        ax_sd_png.grid(alpha=0.2, linestyle=':'); ax_sd_png.legend(frameon=False)
+
+        fig_lines.tight_layout()
+        fig_lines.savefig(f'3_makemore_v3_batchnorm/figures/node_{snap}_activations_stats.png', dpi=150)
+        plt.close(fig_lines)
+        print(f"Saved static stats figure to 3_makemore_v3_batchnorm/figures/node_{snap}_activations_stats.png")
+
+        # Also save static PNG for node-specific BN shift (beta) and scale (gamma)
+        gammas = np.array([s['node_scale'] for s in model._snapshots])
+        betas = np.array([s['node_shift'] for s in model._snapshots])
+        fig_bn, (ax_g, ax_b) = plt.subplots(1, 2, figsize=(12, 4))
+        ax_g.plot(epochs, gammas, color='tab:green')
+        ax_g.set_title(f'BN scale γ over epochs (node {snap})')
+        ax_g.set_xlabel('epoch'); ax_g.set_ylabel('gamma')
+        ax_g.grid(alpha=0.2, linestyle=':')
+
+        ax_b.plot(epochs, betas, color='tab:red')
+        ax_b.set_title(f'BN shift β over epochs (node {snap})')
+        ax_b.set_xlabel('epoch'); ax_b.set_ylabel('beta')
+        ax_b.grid(alpha=0.2, linestyle=':')
+
+        fig_bn.tight_layout()
+        fig_bn.savefig(f'3_makemore_v3_batchnorm/figures/node_{snap}_bn_params.png', dpi=150)
+        plt.close(fig_bn)
+        print(f"Saved BN params figure to 3_makemore_v3_batchnorm/figures/node_{snap}_bn_params.png")
     except Exception as e:
         print("Could not save GIF animation:", e)
 
