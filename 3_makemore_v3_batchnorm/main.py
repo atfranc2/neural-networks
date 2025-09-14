@@ -177,16 +177,22 @@ class NeuralModel:
 
             batch_indexes = torch.randint(0, self.X.shape[0], (batch_size,))
             training_examples = self.X[batch_indexes]
+            # print("training_examples:", training_examples.shape)
+
 
             # A three dimensional matrix. First dim: examples, Second dim: word embedding vectors, Third Dim: Embeddings 
             # Size: batch_size, context_size, embedding_size
             batch = self.C[training_examples]
+            # print("batch:", batch.shape)
+            # print("batch*:", batch.view(batch_size, -1).shape)
 
             pre_activation = batch.view(batch_size, -1) @ self.W1
+            # print("pre_activation:", pre_activation.shape)
             # Sum down the columns (vertically)
             # Takes mean + std of all pre-activations across batch
             batch_mean = pre_activation.mean(0, keepdim=True) # Sum down the columns (vertically)
             batch_std = pre_activation.std(0, keepdim=True)
+            # print("batch_mean:", batch_mean.shape)
 
             with torch.no_grad():
                 self.bn_running_mean = 0.999 * self.bn_running_mean + 0.001 * batch_mean
@@ -194,9 +200,12 @@ class NeuralModel:
 
             bn_pre_activation = self.bn_scale * ((pre_activation - batch_mean) / batch_std) + self.bn_shift
             activation = torch.tanh(bn_pre_activation)
+            # print("activation:", activation.shape)
 
             logits = activation @ self.W2 + self.b2
             loss = F.cross_entropy(logits, self.Y[batch_indexes])
+            # print("logits:", logits.shape)
+            # print("loss:", loss.shape)
 
             for parameter in parameters: 
                 parameter.grad = None
@@ -207,6 +216,8 @@ class NeuralModel:
                     self._snapshots.append({
                         'epoch': epoch,
                         'pre_activation': pre_activation.detach().cpu().flatten().numpy(),
+                        'pre_activation_mean': pre_activation.detach().cpu().flatten().numpy(),
+                        'bn_pre_activation': bn_pre_activation.detach().cpu().flatten().numpy(),
                         'bn_scale_mean': self.bn_scale.mean().item(),
                         'bn_shift_mean': self.bn_shift.mean().item(),
                         'bn_scale': self.bn_scale.detach().cpu().flatten().numpy(),
@@ -244,6 +255,7 @@ class NeuralModel:
         return mean_nll
     
 
+# python /app/3_makemore_v3_batchnorm/main.py
 model = NeuralModel()
 model.train(epochs=10000)
 
