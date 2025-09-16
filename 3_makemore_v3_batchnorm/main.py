@@ -11,9 +11,59 @@ import json
 from matplotlib.animation import FuncAnimation
 
 
-class Linear:
-    def __init__(self, in_features, out_features, bias=True):
-        kaiming = (1/in_features)**0.5
+class Layer:
+    def __init__(self, on_apply):
+        self.on_apply = on_apply
+
+    def parameters(self) -> list[torch.Tensor]:
+        raise NotImplementedError()
+    
+    def _apply(self, tensor:torch.Tensor) -> torch.Tensor:
+        raise NotImplementedError()
+    
+    def apply(self, tensor:torch.Tensor) -> torch.Tensor:
+        self.output = self._apply(tensor)
+        if self.on_apply:
+            self.on_apply(self, self.output)
+
+        return self.output
+
+    def require_grad(self):
+        for parameter in self.parameters():
+            parameter.requires_grad = True
+
+    def zero_grad(self):
+        for parameter in self.parameters():
+            parameter.grad = None
+
+
+class Softmax(Layer):
+    def parameters(self):
+        return []
+    
+    def _apply(self, tensor:torch.Tensor):
+        self.output = torch.softmax(tensor)
+        return self.output
+
+
+class NegativeLogLikelihood(Layer):
+    def __init__(self, target:torch.Tensor):
+        super().__init__()
+        self.target = target
+    
+    def parameters(self):
+        return []
+    
+    def _apply(self, tensor):
+        self.output = F.cross_entropy(tensor, self.target)
+        return self.output
+
+
+class Linear(Layer):
+    def __init__(self, in_features, out_features, gain=1, on_apply=None, do_kaiming=True, bias=True):
+        super().__init__(on_apply)
+        self.gain = gain
+        kaiming = (gain/in_features)**0.5 if do_kaiming else 1
         self.in_features = in_features
         self.out_features = out_features
         self.W = torch.randn(in_features, out_features) * torch.tensor(kaiming)
@@ -21,24 +71,34 @@ class Linear:
 
     def parameters(self):
         params = [self.W]
-        if self.b:
+        if self.b is not None:
             params.append(self.b)
 
         return params
 
-    def __getitem__(self, key):
-        return self.W[key]
+    def _apply(self, other:torch.Tensor):
+        self.output = other @ self.W
+        if self.b is not None:
+            self.output += self.b
 
-    def __matmul__(self, tensor:torch.Tensor) -> torch.Tensor:
-        result = self.W @ tensor
-        if self.b:
-            result += self.b
-        
-        return result
+        return self.output
 
 
-class BatchNorm1D:
-    def __init__(self, num_features, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True):
+class Tanh(Layer):
+    def __init__(self, on_apply=None):
+        super().__init__(on_apply)
+
+    def parameters(self):
+        return []
+    
+    def _apply(self, input:torch.Tensor):
+        self.output = torch.tanh(input)
+        return self.output
+
+
+class BatchNorm1D(Layer):
+    def __init__(self, num_features, eps=1e-05, momentum=0.1, affine=True, on_apply=None, track_running_stats=True):
+        super().__init__(on_apply)
         self.training = True
         self.num_features = num_features
         self.eps = eps
@@ -57,7 +117,7 @@ class BatchNorm1D:
     def parameters(self):
         return [self.shift, self.scale]
 
-    def normalize(self, tensor:torch.Tensor) -> torch.Tensor:
+    def _apply(self, tensor:torch.Tensor) -> torch.Tensor:
         if self.training:
             mean = tensor.mean(0, keepdim=True)
             var = tensor.var(0, keepdim=True)
@@ -78,6 +138,49 @@ class BatchNorm1D:
         
         return normalized
 
+
+class Network:
+    def __init__(self, train_in:torch.Tensor, train_out:torch.Tensor, layers:list[Layer]):
+        self.train_in = train_in
+        self.train_out = train_out
+        self.input = layers[0]
+        self.layers = layers
+        self.initialized = False
+
+    def parameters(self) -> list[torch.Tensor]:
+        return [parameter for layer in self.layers for parameter in layer.parameters()]
+    
+    def require_grad(self):
+        for layer in self.layers:
+            layer.require_grad()
+
+    def zero_grad(self):
+        for layer in self.layers:
+            layer.zero_grad()
+
+    def adjust_grad(self, learning_rate):
+        for parameter in self.parameters():
+            parameter.data += parameter.grad * -learning_rate
+
+    def forwards(self, batch_size:int):
+        if not self.initialized:
+            self.require_grad()
+            self.initialized = True
+        
+        self.batch_indexes = torch.randint(0, self.train_in.shape[0], (batch_size,))
+        batch_examples = self.train_in[self.batch_indexes]
+        batch_input = self.input.W[batch_examples]
+        self.output = batch_input.view(batch_size, -1)
+        for layer in self.layers[1:]:
+            self.output = layer.apply(self.output)
+
+    def backwards(self, learning_rate=0.1):
+        loss = F.cross_entropy(self.output, self.train_out[self.batch_indexes])
+        self.zero_grad()
+        loss.backward()
+
+        return loss
+        
 
 class NeuralModel:
     """
@@ -311,12 +414,18 @@ class NeuralModel:
 
         # Plotting/animation is handled outside the class after training
         
-    
-    def train_v2(self, epochs:int = 10000):
+    def train_v2(
+        self, 
+        layers,
+        scenario,
+        do_kaiming,
+        plot_epoch=0,
+        epochs:int = 10000,
+    ):
         # MLP Reference
         # BatchNorm Reference - https://arxiv.org/abs/1502.03167
         
-        learning_rate = 0.8
+        learning_rate = 0.1
         batch_size = 60
         hidden_size = 300
         embedding_size = 10
@@ -327,17 +436,162 @@ class NeuralModel:
         # Each x is a vector of length context size. Each element containing the character index
         self.X, self.Y = self.n_gram_tensors(self.train_words, self.context_size)
 
-        self.C = Linear(self.n_chars, embedding_size, bias=False)
-        self.L1 = Linear(embedding_size*self.context_size, hidden_size, bias=False)
-        self.L2 = Linear(hidden_size, self.n_chars, bias=True)
-        self.Norm = BatchNorm1D(hidden_size)
-        
-        for epoch in range(epochs):
-            batch_indexes = torch.randint(0, self.X.shape[0], batch_size)
-            batch_examples = self.X[batch_indexes]
-            batch_input = self.C[batch_examples]
+        self.epoch = 0
+        linear_activation_figure = None
+        linear_activation_ax = None
 
+        norm_activation_figure = None
+        norm_activation_ax = None
+
+        tanh_activation_figure = None
+        tanh_activation_ax = None
+
+        linear_gradient_figure = None
+        linear_gradient_ax = None
+
+        layer_colors = {}
+        color_cycle = plt.rcParams['axes.prop_cycle'].by_key().get('color', ['C0','C1','C2','C3','C4','C5'])
+        def update_histogram(layer:Layer, output:torch.Tensor, ax, title, legend=None):
+            if plot_epoch != self.epoch:
+                return
+            
+            _legend = [] if not legend else legend
+            # Assign a stable color per layer instance
+            lid = id(layer)
+            if lid not in layer_colors:
+                layer_colors[lid] = color_cycle[len(layer_colors) % len(color_cycle)]
+            color = layer_colors[lid]
+
+            # Compute stats and plot depending on layer type
+            if isinstance(layer, Tanh):
+                data = output.detach().cpu().view(-1)
+                mu = float(data.mean().item())
+                sd = float(data.std(unbiased=False).item())
+                sat = int((data.abs() > 0.97).sum().item()) / len(data)
+                counts, bin_edges = np.histogram(data.numpy(), bins=100)
+                bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+                ax.plot(bin_centers, counts, color=color,
+                        label=f"Tanh: μ={mu:.4f}, σ={sd:.4f}, sat={sat:.4f}")
+            elif isinstance(layer, (Linear, BatchNorm1D)):
+                # For Linear, characterize parameters W statistics
+                data = output.detach().cpu().view(-1)
+                mu = float(data.mean().item())
+                sd = float(data.std(unbiased=False).item())
+                counts, bin_edges = np.histogram(data.numpy(), bins=100)
+                bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+                ax.plot(bin_centers, counts, color=color,
+                        label=f"Linear: μ={mu:.4f}, σ={sd:.4f}, {','.join(_legend)}")
+            else:
+                return
+
+            ax.set_xlabel("value")
+            ax.set_ylabel("frequency")
+            ax.set_title(title)
+            ax.legend(frameon=False)
         
+        _layers = []
+        C = Linear(self.n_chars, embedding_size, do_kaiming=False, bias=False)
+        for layer in layers:
+            if isinstance(layer, Linear):
+                if linear_activation_figure is None:
+                    linear_activation_figure = plt.figure(1, (10, 6))
+                    linear_activation_ax = linear_activation_figure.gca()
+                layer.on_apply = lambda layer, output: update_histogram(
+                    layer, 
+                    output, 
+                    linear_activation_ax,
+                    f"Linear Pre-Activation"
+                )
+            elif isinstance(layer, Tanh):
+                if tanh_activation_figure is None:
+                    tanh_activation_figure = plt.figure(2, (10, 6))
+                    tanh_activation_ax = tanh_activation_figure.gca()
+                layer.on_apply = lambda layer, output: update_histogram(
+                    layer, 
+                    output, 
+                    tanh_activation_ax,
+                    f"Tanh Activation"
+                )
+            elif isinstance(layer, BatchNorm1D):
+                if norm_activation_figure is None:
+                    norm_activation_figure = plt.figure(3, (10, 6))
+                    norm_activation_ax = norm_activation_figure.gca()
+                layer.on_apply = lambda layer, output: update_histogram(
+                    layer, 
+                    output, 
+                    norm_activation_ax,
+                    f"BatchNorm Pre-Activation"
+                )
+            _layers.append(layer)
+
+        self.network = Network(self.X, self.Y, [
+            C,
+            *_layers,
+            Linear(hidden_size, self.n_chars, gain=5/3, do_kaiming=do_kaiming), Tanh(),
+        ])
+
+        weight_adjustments = [[] for layer in _layers]
+        for epoch in range(epochs):
+            self.epoch = epoch
+            if epoch % 100 == 0: 
+                print(f"Epoch {epoch}/{epochs}")
+            self.network.forwards(batch_size=60)
+            self.loss = self.network.backwards()
+
+            with torch.no_grad():
+                for index, layer in enumerate(_layers):
+                    if not isinstance(layer, Linear):
+                        continue
+                    
+                    weight_adjustments[index].append(((learning_rate*layer.W.grad).std() / layer.W.data.std()).log10().item())
+                    
+                    if linear_gradient_figure is None:
+                        linear_gradient_figure = plt.figure(4, (10, 6))
+                        linear_gradient_ax = linear_gradient_figure.gca()
+
+                    update_histogram(
+                        layer, 
+                        layer.W.grad, 
+                        linear_gradient_ax, 
+                        "Linear Gradient",
+                        [f'grad:data = {(layer.W.grad.detach().cpu() / layer.W.data.detach().cpu()).mean().item():.4f}']
+                    )
+                
+            self.network.adjust_grad(learning_rate)
+
+        if norm_activation_figure:
+            norm_activation_figure.savefig(f"3_makemore_v3_batchnorm/figures/{scenario}_norm_activation_hist.png")
+            plt.close(norm_activation_figure)
+        
+        if linear_activation_figure:
+            linear_activation_figure.savefig(f"3_makemore_v3_batchnorm/figures/{scenario}_linear_activation_hist.png")
+            plt.close(linear_activation_figure)
+        
+        if tanh_activation_figure:
+            tanh_activation_figure.savefig(f"3_makemore_v3_batchnorm/figures/{scenario}_tanh_activation_hist.png")
+            plt.close(tanh_activation_figure)
+        
+        if linear_gradient_figure:
+            linear_gradient_figure.savefig(f"3_makemore_v3_batchnorm/figures/{scenario}_linear_gradient_hist.png")
+            plt.close(linear_gradient_figure)
+
+        weight_adjustment_figure = plt.figure(6, figsize=(20, 4))
+        weight_adjustment_ax = weight_adjustment_figure.gca()
+        
+        legends = []
+        for i, series in enumerate(weight_adjustments):
+            if len(series) == 0:
+                continue
+            weight_adjustment_ax.plot(series)
+            legends.append('param %d' % i)
+
+        weight_adjustment_ax.plot([0, len(weight_adjustments[0])], [-3, -3], 'k') # these ratios should be ~1e-3, indicate on plot
+        weight_adjustment_ax.legend(legends)
+
+        weight_adjustment_figure.savefig(f"3_makemore_v3_batchnorm/figures/{scenario}_learning_progression.png")
+        plt.close(weight_adjustment_figure)
+        
+        return self.loss
     
     def eval(self, split="validate"):
         data = self.train_words
@@ -360,11 +614,63 @@ class NeuralModel:
     
 
 # python /app/3_makemore_v3_batchnorm/main.py
-model = NeuralModel()
-model.train(epochs=15000)
+hidden_size = 300
+embedding_size = 10
+context_size = 3
+epochs = 1000
+plot_epoch = 1
+
+
+raw_model = NeuralModel()
+raw_layers = [
+    Linear(context_size * embedding_size, hidden_size, gain=5/3, do_kaiming=False), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), Tanh(),
+]
+raw_model.train_v2(raw_layers, 'raw', do_kaiming=False, epochs=epochs, plot_epoch=plot_epoch)
+
+
+kaiming_model = NeuralModel()
+kaiming_layers = [
+    Linear(context_size * embedding_size, hidden_size, gain=5/3, do_kaiming=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), Tanh(),
+]
+kaiming_model.train_v2(kaiming_layers, 'kaiming', do_kaiming=True, epochs=epochs, plot_epoch=plot_epoch)
+
+
+batchnorm_model = NeuralModel()
+batchnorm_layers = [
+    Linear(context_size * embedding_size, hidden_size, gain=5/3, do_kaiming=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), BatchNorm1D(hidden_size), Tanh(),
+]
+batchnorm_model.train_v2(batchnorm_layers, 'batchnorm', do_kaiming=False, epochs=epochs, plot_epoch=plot_epoch)
+
+
+batchnorm_kaiming_model = NeuralModel()
+batchnorm_kaiming_layers = [
+    Linear(context_size * embedding_size, hidden_size, gain=5/3, do_kaiming=True), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), BatchNorm1D(hidden_size), Tanh(),
+]
+batchnorm_kaiming_model.train_v2(batchnorm_kaiming_layers, 'batchnorm_kaiming', do_kaiming=True, epochs=epochs, plot_epoch=plot_epoch)
 
 # Build animation outside the class: node-75 raw vs normalized histograms
-if len(model._snapshots) > 0:
+# if len(model._snapshots) > 0:
+if False:
     # Global limits per distribution type (raw vs normalized)
     all_raw = np.concatenate([s['raw_node'] for s in model._snapshots])
     all_norm = np.concatenate([s['norm_node'] for s in model._snapshots])
@@ -479,5 +785,5 @@ if len(model._snapshots) > 0:
     except Exception as e:
         print("Could not save GIF animation:", e)
 
-print(f"Train Loss: {model.loss}")
-model.eval("test")
+# print(f"Train Loss: {model.loss}")
+# model.eval("test")
