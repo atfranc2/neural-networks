@@ -618,7 +618,7 @@ hidden_size = 300
 embedding_size = 10
 context_size = 3
 epochs = 1000
-plot_epoch = 1
+plot_epoch = 500
 
 
 raw_model = NeuralModel()

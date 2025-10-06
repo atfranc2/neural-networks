@@ -108,7 +108,7 @@ plot_hist(
 )
 
 
-scale = 0.05
+scale = 0.01
 raw_scale_pre_activation = input @ (weight * scale)
 
 plot_hist(
@@ -175,7 +175,7 @@ def create_weights(layers=24, inputs=10000, outputs=500):
     weight_arrs = [np.asarray(more_weights_rng.standard_normal((inputs, outputs)))]
     out_rng  = np.random.default_rng(seed=4946511)
     for i in range(layers):
-        out_size = max(150, int((np.abs(more_weights_rng.standard_normal())) * 10000))
+        out_size = max(150, int((np.abs(more_weights_rng.standard_normal())) * 2000))
         weight_arrs.append(np.asarray(more_weights_rng.standard_normal((in_size, out_size))))
         in_size =out_size
 
@@ -196,6 +196,7 @@ def plot_lines(
     file_name: str,
     labels: list[str] | None = None,
     y_label:str|None = None,
+    y_lim = None,
     x: np.ndarray | list[float] | None = None,
 ) -> str:
     """
@@ -232,7 +233,10 @@ def plot_lines(
         ax.plot(x_vals, s, lw=2, label=label, color=color)
 
     ax.set_title(title)
-    ax.set_xlabel('index' if x is None else 'x')
+    if y_lim:
+        ax.get_ylim(y_lim)
+
+    ax.set_xlabel('Layer')
     ax.set_ylabel('value' if y_label is None else y_label)
     ax.grid(alpha=0.2, linestyle=':')
     if labels:
@@ -244,7 +248,7 @@ def plot_lines(
     plt.close(fig)
     return out_path
 
-more_weights = create_weights()
+more_weights = create_weights(layers=18)
 prop_tail = 0.95
 prop_range = 0.03
 raw_output = input @ (weight * scale)
@@ -261,10 +265,15 @@ kaiming_activation_var = [kaiming_activation.var()]
 kaiming_in_tail = [tail_prop(kaiming_activation, prop_tail)]
 kaiming_in_around_0 = [range_prop(kaiming_activation, prop_range)]
 
-for more_weight in more_weights:
+plot_hist(raw_output, "Raw Pre-Activations", "1_pre_activation_hist")
+plot_hist(raw_activation, "Raw Activations", "1_activation_hist", (-1,1))
+plot_hist(kaiming_output, "Kaiming Pre-Activations", "1_kai_pre_activation_hist")
+plot_hist(kaiming_activation, "Kaiming Activations", "1_kai_activation_hist", (-1,1))
+
+for index, more_weight in enumerate(more_weights, 2):
     raw_output = raw_activation @ (more_weight * scale)
     raw_activation = np.tanh(raw_output)
-
+    
     raw_output_var.append(raw_output.var())
     raw_activation_var.append(raw_activation.var())
     raw_in_tail.append(tail_prop(raw_activation, prop_tail))
@@ -279,6 +288,12 @@ for more_weight in more_weights:
     kaiming_output_var.append(kaiming_output.var())
     kaiming_activation_var.append(kaiming_activation.var())
 
+    if index < 5:
+        plot_hist(raw_output, "Raw Pre-Activations", f"{index}_pre_activation_hist")
+        plot_hist(raw_activation, "Raw Activations", f"{index}_activation_hist", (-1,1))
+        plot_hist(kaiming_output, "Kaiming Pre-Activations", f"{index}_kai_pre_activation_hist")
+        plot_hist(kaiming_activation, "Kaiming Activations", f"{index}_kai_activation_hist", (-1,1))
+
 plot_lines(
     [
         np.asarray(raw_activation_var) - np.asarray(raw_output_var),
@@ -291,13 +306,19 @@ plot_lines(
 )
 
 plot_lines(
-    [raw_in_tail, raw_in_around_0, kaiming_in_tail, kaiming_in_around_0],
+    [raw_in_tail, raw_in_around_0,],
     "Proportion of Activations",
-    f"activation_proportion_{scale}",
-    [f"Raw In Tail (Scale={scale})", f"Raw Near 0 (Scale={scale})", "Kaiming In Tail", "Kaiming Near 0"],
+    f"raw_activation_proportion_{scale}",
+    [f"Raw In Tail (Scale={scale})", f"Raw Near 0 (Scale={scale})",],
     "Proportion"
 )
-
+plot_lines(
+    [kaiming_in_tail, kaiming_in_around_0],
+    "Proportion of Activations",
+    f"kaiming_activation_proportion",
+    ["Kaiming In Tail", "Kaiming Near 0"],
+    "Proportion"
+)
 
 plot_lines(
     [raw_output_var, raw_activation_var, kaiming_output_var, kaiming_activation_var],
