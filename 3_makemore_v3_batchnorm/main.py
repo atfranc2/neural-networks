@@ -425,9 +425,9 @@ class NeuralModel:
         # MLP Reference
         # BatchNorm Reference - https://arxiv.org/abs/1502.03167
         
-        learning_rate = 0.1
-        batch_size = 60
-        hidden_size = 300
+        learning_rate = 1.5
+        batch_size = 32
+        hidden_size = 100
         embedding_size = 10
         self.context_size = 3
 
@@ -448,6 +448,9 @@ class NeuralModel:
 
         linear_gradient_figure = None
         linear_gradient_ax = None
+
+        tanh_gradient_figure = None
+        tanh_gradient_ax = None
 
         layer_colors = {}
         color_cycle = plt.rcParams['axes.prop_cycle'].by_key().get('color', ['C0','C1','C2','C3','C4','C5'])
@@ -473,6 +476,15 @@ class NeuralModel:
                 ax.plot(bin_centers, counts, color=color,
                         label=f"Tanh: μ={mu:.4f}, σ={sd:.4f}, sat={sat:.4f}")
             elif isinstance(layer, (Linear, BatchNorm1D)):
+                # For Linear, characterize parameters W statistics
+                data = output.detach().cpu().view(-1)
+                mu = float(data.mean().item())
+                sd = float(data.std(unbiased=False).item())
+                counts, bin_edges = np.histogram(data.numpy(), bins=100)
+                bin_centers = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+                ax.plot(bin_centers, counts, color=color,
+                        label=f"Linear: μ={mu:.4f}, σ={sd:.4f}, {','.join(_legend)}")
+            elif isinstance(layer, torch.Tensor):
                 # For Linear, characterize parameters W statistics
                 data = output.detach().cpu().view(-1)
                 mu = float(data.mean().item())
@@ -530,34 +542,55 @@ class NeuralModel:
             Linear(hidden_size, self.n_chars, gain=5/3, do_kaiming=do_kaiming), Tanh(),
         ])
 
-        weight_adjustments = [[] for layer in _layers]
+        weight_adjustments = [[] for layer in self.network.parameters()]
         for epoch in range(epochs):
             self.epoch = epoch
             if epoch % 100 == 0: 
                 print(f"Epoch {epoch}/{epochs}")
-            self.network.forwards(batch_size=60)
+            self.network.forwards(batch_size)
+            for layer in _layers:
+                layer.output.retain_grad()
             self.loss = self.network.backwards()
+            self.network.adjust_grad(learning_rate)
 
             with torch.no_grad():
-                for index, layer in enumerate(_layers):
-                    if not isinstance(layer, Linear):
+                for i, parameter in enumerate(self.network.parameters()):
+                    if 1 in parameter.shape:
                         continue
-                    
-                    weight_adjustments[index].append(((learning_rate*layer.W.grad).std() / layer.W.data.std()).log10().item())
-                    
+
                     if linear_gradient_figure is None:
                         linear_gradient_figure = plt.figure(4, (10, 6))
                         linear_gradient_ax = linear_gradient_figure.gca()
 
                     update_histogram(
-                        layer, 
-                        layer.W.grad, 
+                        parameter, 
+                        parameter.grad, 
                         linear_gradient_ax, 
-                        "Linear Gradient",
-                        [f'grad:data = {(layer.W.grad.detach().cpu() / layer.W.data.detach().cpu()).mean().item():.4f}']
-                    )
-                
-            self.network.adjust_grad(learning_rate)
+                        "Weight Gradient Distribution",
+                        [f'grad:data = {(parameter.grad.detach().cpu() / parameter.data.detach().cpu()).mean().item():.4f}']
+                    ) 
+
+                for layer in _layers:
+                    if epoch != plot_epoch:
+                        continue
+
+                    if not isinstance(layer, Tanh):
+                        continue
+
+                    if tanh_gradient_figure is None:
+                        tanh_gradient_figure = plt.figure(55, (10, 6))
+                        tanh_gradient_ax = tanh_gradient_figure.gca()
+
+                    update_histogram(
+                        layer, 
+                        layer.output.grad, 
+                        tanh_gradient_ax, 
+                        "Tanh Gradient Distribution",
+                        # [f'grad:data = {(parameter.grad.detach().cpu() / parameter.data.detach().cpu()).mean().item():.4f}']
+                    )             
+
+            for i, parameter in enumerate(self.network.parameters()):
+                weight_adjustments[i].append(((learning_rate*parameter.grad).std() / parameter.data.std()).log10().item())
 
         if norm_activation_figure:
             norm_activation_figure.savefig(f"3_makemore_v3_batchnorm/figures/{scenario}_norm_activation_hist.png")
@@ -574,20 +607,29 @@ class NeuralModel:
         if linear_gradient_figure:
             linear_gradient_figure.savefig(f"3_makemore_v3_batchnorm/figures/{scenario}_linear_gradient_hist.png")
             plt.close(linear_gradient_figure)
+        
+        if tanh_gradient_figure:
+            tanh_gradient_figure.savefig(f"3_makemore_v3_batchnorm/figures/{scenario}_tanh_gradient_hist.png")
+            plt.close(tanh_gradient_figure)
 
         weight_adjustment_figure = plt.figure(6, figsize=(20, 4))
         weight_adjustment_ax = weight_adjustment_figure.gca()
         
         legends = []
-        for i, series in enumerate(weight_adjustments):
-            if len(series) == 0:
+        for i, parameter in enumerate(self.network.parameters()):
+            if len(parameter) == 0:
                 continue
-            weight_adjustment_ax.plot(series)
+            
+            if 1 in parameter.shape:
+                continue
+            
+            weight_adjustment_ax.plot(weight_adjustments[i])
             legends.append('param %d' % i)
 
         weight_adjustment_ax.plot([0, len(weight_adjustments[0])], [-3, -3], 'k') # these ratios should be ~1e-3, indicate on plot
         weight_adjustment_ax.legend(legends)
 
+        weight_adjustment_ax.set_ylim(-5, 0)
         weight_adjustment_figure.savefig(f"3_makemore_v3_batchnorm/figures/{scenario}_learning_progression.png")
         plt.close(weight_adjustment_figure)
         
@@ -614,57 +656,58 @@ class NeuralModel:
     
 
 # python /app/3_makemore_v3_batchnorm/main.py
-hidden_size = 300
+hidden_size = 100
 embedding_size = 10
 context_size = 3
 epochs = 1000
-plot_epoch = 500
+plot_epoch = 999
+gain = 5/3
 
 
 raw_model = NeuralModel()
 raw_layers = [
-    Linear(context_size * embedding_size, hidden_size, gain=5/3, do_kaiming=False), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), Tanh(),
+    Linear(context_size * embedding_size, hidden_size, gain=gain, do_kaiming=False, bias=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=False, bias=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=False, bias=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=False, bias=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=False, bias=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=False, bias=True), Tanh(),
 ]
 raw_model.train_v2(raw_layers, 'raw', do_kaiming=False, epochs=epochs, plot_epoch=plot_epoch)
 
 
 kaiming_model = NeuralModel()
 kaiming_layers = [
-    Linear(context_size * embedding_size, hidden_size, gain=5/3, do_kaiming=True), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), Tanh(),
+    Linear(context_size * embedding_size, hidden_size, gain=gain, do_kaiming=True, bias=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=True, bias=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=True, bias=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=True, bias=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=True, bias=True), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=True, bias=True), Tanh(),
 ]
 kaiming_model.train_v2(kaiming_layers, 'kaiming', do_kaiming=True, epochs=epochs, plot_epoch=plot_epoch)
 
 
 batchnorm_model = NeuralModel()
 batchnorm_layers = [
-    Linear(context_size * embedding_size, hidden_size, gain=5/3, do_kaiming=False), BatchNorm1D(hidden_size), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), BatchNorm1D(hidden_size), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), BatchNorm1D(hidden_size), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), BatchNorm1D(hidden_size), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), BatchNorm1D(hidden_size), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(context_size * embedding_size, hidden_size, gain=gain, do_kaiming=False, bias=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=False, bias=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=False, bias=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=False, bias=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=False, bias=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=False, bias=False), BatchNorm1D(hidden_size), Tanh(),
 ]
 batchnorm_model.train_v2(batchnorm_layers, 'batchnorm', do_kaiming=False, epochs=epochs, plot_epoch=plot_epoch)
 
 
 batchnorm_kaiming_model = NeuralModel()
 batchnorm_kaiming_layers = [
-    Linear(context_size * embedding_size, hidden_size, gain=5/3, do_kaiming=True), BatchNorm1D(hidden_size), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), BatchNorm1D(hidden_size), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), BatchNorm1D(hidden_size), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), BatchNorm1D(hidden_size), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), BatchNorm1D(hidden_size), Tanh(),
-    Linear(hidden_size, hidden_size, gain=5/3, do_kaiming=True), BatchNorm1D(hidden_size), Tanh(),
+    Linear(context_size * embedding_size, hidden_size, gain=gain, do_kaiming=True, bias=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=True, bias=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=True, bias=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=True, bias=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=True, bias=False), BatchNorm1D(hidden_size), Tanh(),
+    Linear(hidden_size, hidden_size, gain=gain, do_kaiming=True, bias=False), BatchNorm1D(hidden_size), Tanh(),
 ]
 batchnorm_kaiming_model.train_v2(batchnorm_kaiming_layers, 'batchnorm_kaiming', do_kaiming=True, epochs=epochs, plot_epoch=plot_epoch)
 
